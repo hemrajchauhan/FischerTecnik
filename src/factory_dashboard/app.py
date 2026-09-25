@@ -18,7 +18,15 @@ import pandas as pd
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
-from .analytics import attach_source_timestamps, build_color_counts, build_cycle_metrics, build_stage_metrics, clean_telemetry, kpi_summary
+from .analytics import (
+    OVEN_TARGET_SECONDS,
+    attach_source_timestamps,
+    build_color_counts,
+    build_cycle_metrics,
+    build_stage_metrics,
+    clean_telemetry,
+    kpi_summary,
+)
 from .config import ASSETS, DATA, SETTINGS
 from .data_source import ReplayDataSource
 from .event_engine import Event, EventEngine
@@ -33,6 +41,7 @@ from .visualization import (
     cake_flavour_figure,
     case_study_complaints,
     cycle_time_figure,
+    throughput_figure,
     event_timeline_figure,
     factory_figure,
     oee_components_figure,
@@ -42,7 +51,7 @@ from .visualization import (
     station_activity_figure,
 )
 
-st.set_page_config(page_title="Fischertechnik Factory Monitor", page_icon="🏭", layout="wide")
+st.set_page_config(page_title="Smart Cake Factory", page_icon="🍰", layout="wide")
 
 
 @st.cache_data(show_spinner=False)
@@ -61,6 +70,22 @@ def get_history() -> History:
     if "history" not in st.session_state:
         st.session_state.history = History(max_rows=max(1200, SETTINGS.history_seconds * 4))
     return st.session_state.history
+
+
+def seed_simulation_history() -> None:
+    """Populate a short deterministic history so simulation charts are useful immediately."""
+    if st.session_state.get("simulation_history_seeded"):
+        return
+    history = get_history()
+    sim = get_sim()
+    now = datetime.now(timezone.utc)
+    total = 330.0
+    start = now - pd.Timedelta(seconds=total)
+    for i in range(int(total) + 1):
+        elapsed = float(i)
+        ts = start + pd.Timedelta(seconds=elapsed)
+        history.add(sim.snapshot_at_elapsed(elapsed, timestamp=ts))
+    st.session_state.simulation_history_seeded = True
 
 
 def get_live_history() -> History:
@@ -368,7 +393,7 @@ def inject_visual_identity() -> None:
         .dot-active { color:var(--tum-blue); } .dot-idle { color:var(--grey); } .dot-alert { color:var(--orange-dark); }
         .alert-card { border-left:4px solid var(--orange); background:#FFF7F0; border-radius:12px; padding:.72rem .85rem; margin:.45rem 0; }
         .alert-title { color:var(--orange-dark); font-weight:800; font-size:.84rem; }
-        .alert-detail { color:var(--muted); font-size:.77rem; margin-top:.15rem; }
+        .alert-detail { color:var(--muted); font-size:.77rem; margin-top:.15rem; } .info-card { border-left:4px solid var(--tum-blue); background:#EEF6FD; border-radius:12px; padding:.72rem .85rem; margin:.45rem 0; }
         .identity-footer { color:#7A7A80; font-size:.72rem; margin-top:.9rem; }
         div[data-testid="stMetric"] { background:#fff; border:1px solid var(--grid); border-radius:16px; padding:.65rem .75rem; box-shadow:0 4px 14px rgba(29,31,33,.04); }
         div[data-testid="stDataFrame"] { border-radius:14px; overflow:hidden; }
@@ -422,8 +447,12 @@ def render_status_banner(snap: Snapshot, process_state) -> None:
         css, state = "status-live", "SIMULATION RUNNING"
     else:
         css, state = "status-live", "CAKE LINE RUNNING"
-    elapsed = fmt_seconds(getattr(process_state, "phase_elapsed_s", None))
-    detail = f"Stage: {process_state.phase} · Stage elapsed: {elapsed}"
+    elapsed_s = getattr(process_state, "phase_elapsed_s", None)
+    elapsed = fmt_seconds(elapsed_s)
+    if str(process_state.phase).strip().lower() == "baking":
+        detail = f"Oven elapsed: {elapsed} · reference {OVEN_TARGET_SECONDS:.1f} s"
+    else:
+        detail = f"Stage: {process_state.phase} · Stage elapsed: {elapsed}"
     st.markdown(f'''<div class="status-banner {css}"><div class="state">{state}</div><div class="meta">{detail}</div></div>''', unsafe_allow_html=True)
 
 
@@ -497,34 +526,27 @@ def render_operator(view: str, snap: Snapshot, process_state, clean: pd.DataFram
     render_identity_header(view, snap)
     render_status_banner(snap, process_state)
     render_kpis([
-        identity_kpi("Cakes completed", str(summary.get("cycles_completed", 0)), "HBW pickup → quality inspection"),
-        identity_kpi("Cycle time", fmt_seconds(summary.get("cycle_median_s")), "Median physical cake flow"),
+        identity_kpi("Cakes completed", str(summary.get("cycles_completed", 0)), "HBW pickup → sorting-line entry"),
+        identity_kpi("Cycle time", fmt_seconds(summary.get("cycle_median_s")), "Actual material-flow cycle"),
+        identity_kpi("Oven time", fmt_seconds(summary.get("burn_median_s")), f"Actual burn time · reference {OVEN_TARGET_SECONDS:.1f} s"),
         identity_kpi("Vanilla", str(colors["Vanilla"]), "White cakes produced"),
         identity_kpi("Strawberry", str(colors["Strawberry"]), "Red cakes produced"),
         identity_kpi("Blueberry", str(colors["Blueberry"]), "Blueberry cakes produced"),
     ])
 
-    # The operator is the only role that needs the live physical-line view and
-    # immediate critical/warning information in the same screen.
     render_factory_identity(snap, compact=False)
 
     if snap.emergency:
-        st.error("EMERGENCY STOP ACTIVE — dashboard is read-only. Follow the physical plant safety procedure.")
-    alerts = _recent_alerts(events)
-    if not alerts.empty:
-        st.markdown('<div class="section-title">What needs attention</div>', unsafe_allow_html=True)
-        for _, row in alerts.tail(4).iloc[::-1].iterrows():
-            ts = row.get("timestamp")
-            ts_text = ts.tz_convert("Europe/Berlin").strftime("%H:%M:%S") if pd.notna(ts) else "—"
-            st.markdown(f'''<div class="alert-card"><div class="alert-title">{row.get("severity", "WARNING")} · {row.get("code", "EVENT")} · {ts_text}</div><div class="alert-detail">{row.get("message", "Recorded event")}</div></div>''', unsafe_allow_html=True)
+        st.error("EMERGENCY STOP ACTIVE — follow the physical plant safety procedure.")
 
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown('<div class="chart-headline">Cake cycle timing</div><div class="section-note">HBW pickup → sorting-line entry · production cadence shown against the 55 s reference</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-headline">Cake cycle timing</div><div class="section-note">Actual HBW pickup → sorting-line entry duration · 55 s reference shown for context.</div>', unsafe_allow_html=True)
         st.plotly_chart(cycle_time_figure(cycles), use_container_width=True, config={"displayModeBar": False})
     with c2:
-        st.markdown('<div class="chart-headline">Oven temperature stayed in the target window</div><div class="section-note">Simulated oven temperature · realistic cake-baking range 175–185 °C · not a physical temperature sensor</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-headline">Oven temperature</div><div class="section-note">Simulated process temperature for the cake-factory presentation · target window 175–185 °C.</div>', unsafe_allow_html=True)
         st.plotly_chart(simulated_temperature_figure(clean), use_container_width=True, config={"displayModeBar": False})
+
 
 
 def render_qa(view: str, snap: Snapshot, clean: pd.DataFrame, cycles: pd.DataFrame, stages: pd.DataFrame, events: pd.DataFrame) -> None:
@@ -538,7 +560,7 @@ def render_qa(view: str, snap: Snapshot, clean: pd.DataFrame, cycles: pd.DataFra
         identity_kpi("Vanilla cakes", str(colors["Vanilla"]), "White cakes produced"),
         identity_kpi("Strawberry cakes", str(colors["Strawberry"]), "Red cakes produced"),
         identity_kpi("Blueberry cakes", str(colors["Blueberry"]), "Blue cakes produced"),
-        identity_kpi("NOK cakes", str(nok), "Burn time outside 3–7 s", attention=nok > 0),
+        identity_kpi("NOK cakes", str(nok), "Oven time outside 3–7 s tolerance", attention=nok > 0),
     ])
 
     left, right = st.columns([2, 3])
@@ -546,7 +568,7 @@ def render_qa(view: str, snap: Snapshot, clean: pd.DataFrame, cycles: pd.DataFra
         st.markdown('<div class="chart-headline">Cakes produced by flavour</div><div class="section-note">Finished cakes classified by the sorting-line destination: white = vanilla, red = strawberry, blue = blueberry.</div>', unsafe_allow_html=True)
         st.plotly_chart(cake_flavour_figure(colors), use_container_width=True, config={"displayModeBar": False})
     with right:
-        st.markdown('<div class="chart-headline">Latest cakes checked</div><div class="section-note">Newest finished cakes · burn time is the available quality proxy.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-headline">Latest cakes checked</div><div class="section-note">Newest finished cakes · actual oven time measured from burn ON → OFF.</div>', unsafe_allow_html=True)
         burn_rows = stages[(stages.get("measurement") == "stage_elapsed") & (stages.get("stage") == "Baking")].copy() if not stages.empty else pd.DataFrame()
         if not burn_rows.empty:
             burn_rows = burn_rows.dropna(subset=["elapsed_s"]).sort_values("start", ascending=False).head(8).copy()
@@ -559,7 +581,7 @@ def render_qa(view: str, snap: Snapshot, clean: pd.DataFrame, cycles: pd.DataFra
             st.info("No completed cake quality checks in this window.")
 
     headline = f"{nok} cake{'s' if nok != 1 else ''} need quality review" if nok else f"All {checks} checked cakes stayed within the bake-time specification"
-    st.markdown(f'<div class="chart-headline">{headline}</div><div class="section-note">Observed baking time per cake · specification 3–7 s.</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="chart-headline">{headline}</div><div class="section-note">Actual oven time per cake · target 5 s · acceptable tolerance 3–7 s.</div>', unsafe_allow_html=True)
     st.plotly_chart(qa_burn_figure(stages), use_container_width=True, config={"displayModeBar": False})
 
 
@@ -593,35 +615,89 @@ def render_department(view: str, snap: Snapshot, clean: pd.DataFrame, cycles: pd
 
 def render_diagnostics(view: str, snap: Snapshot, process_state, clean: pd.DataFrame, cycles: pd.DataFrame, stages: pd.DataFrame, events: pd.DataFrame) -> None:
     summary = kpi_summary(clean, cycles, stages, events)
+    colors = build_color_counts(clean)
     render_identity_header(view, snap)
     render_kpis([
-        identity_kpi("Signals received", str(len(snap.values)), "Current snapshot"),
-        identity_kpi("Good / bad", f"{snap.good_count} / {snap.bad_count}", "OPC UA value quality"),
-        identity_kpi("Sync spread", f"{snap.sync_spread_ms:.0f} ms" if snap.sync_spread_ms is not None else "—", "Source timestamp spread"),
+        identity_kpi("Factory state", "EMERGENCY" if snap.emergency else ("STALE" if snap.health == Health.STALE else "RUNNING" if snap.connected else "OFFLINE"),
+                     "Current telemetry state", attention=snap.emergency or snap.health == Health.STALE or not snap.connected),
+        identity_kpi("Signals", str(len(snap.values)), f"{snap.good_count} good · {snap.bad_count} bad"),
+        identity_kpi("Sync spread", f"{snap.sync_spread_ms:.0f} ms" if snap.sync_spread_ms is not None else "—", "SourceTimestamp spread"),
         identity_kpi("Current stage", process_state.phase, f"Elapsed {fmt_seconds(process_state.phase_elapsed_s)}"),
+        identity_kpi("Oven time", fmt_seconds(summary.get("burn_median_s")), f"Actual median · reference {OVEN_TARGET_SECONDS:.1f} s"),
+        identity_kpi("Cakes", str(summary.get("cycles_completed", 0)), "Completed material-flow cycles"),
+        identity_kpi("Throughput", f'{summary.get("throughput_per_hour"):.1f} cakes/h' if summary.get("throughput_per_hour") is not None else "—", "Estimated from HBW pickup cadence"),
     ])
-    render_factory_identity(snap, compact=True)
 
-    left, right = st.columns(2)
-    with left:
-        st.markdown('<div class="section-title">Observed stage durations</div><div class="section-note">Measured from signal transitions and source timestamps, not fixed simulation durations.</div>', unsafe_allow_html=True)
+    render_factory_identity(snap, compact=False)
+
+    st.markdown('<div class="section-title">What needs attention</div>', unsafe_allow_html=True)
+    if events is None or events.empty:
+        st.info("No recorded factory events in the current window.")
+    else:
+        e = events.copy()
+        if "timestamp" in e.columns:
+            e["timestamp"] = pd.to_datetime(e["timestamp"], utc=True, errors="coerce")
+        severity_order = {"CRITICAL": 0, "WARNING": 1, "INFO": 2}
+        e["_rank"] = e.get("severity", pd.Series("INFO", index=e.index)).map(severity_order).fillna(2)
+        e = e.sort_values(["_rank", "timestamp"], ascending=[True, False])
+        for _, row in e.head(12).iterrows():
+            sev = str(row.get("severity", "INFO"))
+            ts = row.get("timestamp")
+            ts_text = ts.tz_convert("Europe/Berlin").strftime("%H:%M:%S") if pd.notna(ts) else "—"
+            card_cls = "alert-card" if sev in {"CRITICAL", "WARNING"} else "info-card"
+            html = '<div class="' + card_cls + '"><div class="alert-title">' +                    f'{sev} · {row.get("code", "EVENT")} · {ts_text}' +                    '</div><div class="alert-detail">' + str(row.get("message", "Recorded event")) + '</div></div>'
+            st.markdown(html, unsafe_allow_html=True)
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown('<div class="chart-headline">Cake cycle timing</div><div class="section-note">Actual HBW pickup → sorting-line entry duration.</div>', unsafe_allow_html=True)
+        st.plotly_chart(cycle_time_figure(cycles), use_container_width=True, config={"displayModeBar": False})
+    with c2:
+        st.markdown('<div class="chart-headline">Production throughput</div><div class="section-note">HBW pickup-to-pickup cadence used to estimate cakes per hour.</div>', unsafe_allow_html=True)
+        st.plotly_chart(throughput_figure(cycles), use_container_width=True, config={"displayModeBar": False})
+
+    c3, c4 = st.columns(2)
+    with c3:
+        st.markdown('<div class="section-title">Observed stage durations</div><div class="section-note">Measured from signal transitions and source timestamps.</div>', unsafe_allow_html=True)
         st.plotly_chart(stage_duration_figure(stages), use_container_width=True, config={"displayModeBar": False})
-    with right:
-        st.markdown('<div class="section-title">Station activity</div><div class="section-note">Share of observed session time with physical process outputs active.</div>', unsafe_allow_html=True)
+    with c4:
+        st.markdown('<div class="section-title">Station activity</div><div class="section-note">Share of observed time with physical process outputs active.</div>', unsafe_allow_html=True)
         st.plotly_chart(station_activity_figure(clean), use_container_width=True, config={"displayModeBar": False})
 
-    if events is not None and not events.empty:
-        st.markdown('<div class="section-title">Event timeline</div><div class="section-note">Process and system events recorded from the PLC/diagnostic engine.</div>', unsafe_allow_html=True)
-        st.plotly_chart(event_timeline_figure(events), use_container_width=True, config={"displayModeBar": False})
+    c5, c6 = st.columns(2)
+    with c5:
+        st.markdown('<div class="section-title">Cakes by flavour</div><div class="section-note">White = vanilla · red = strawberry · blue = blueberry.</div>', unsafe_allow_html=True)
+        st.plotly_chart(cake_flavour_figure(colors), use_container_width=True, config={"displayModeBar": False})
+    with c6:
+        st.markdown('<div class="section-title">Event timeline</div><div class="section-note">Recorded INFO, WARNING and CRITICAL events.</div>', unsafe_allow_html=True)
+        if events is not None and not events.empty:
+            st.plotly_chart(event_timeline_figure(events), use_container_width=True, config={"displayModeBar": False})
+        else:
+            st.info("No events in the current window.")
 
-    st.markdown('<div class="section-title">Current sensor and actuator values</div><div class="section-note">Raw values remain visible here for diagnostics; TRUE sensors are not automatically treated as machine activity.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Factory signal diagnostics</div><div class="section-note">Raw sensor, actuator, PLC-state and derived values. TRUE sensors are not automatically treated as machine activity.</div>', unsafe_allow_html=True)
     descriptions = tag_descriptions()
     current = pd.DataFrame([
         {"Signal": key, "Value": value, "Status": snap.statuses.get(key, "derived"),
          "Description": descriptions.get(key, "Simulation / derived value")}
         for key, value in sorted(snap.values.items())
     ])
-    st.dataframe(current, use_container_width=True, hide_index=True, height=420)
+    st.dataframe(current, use_container_width=True, hide_index=True, height=480)
+
+    st.markdown('<div class="section-title">Process summary</div>', unsafe_allow_html=True)
+    process_rows = [
+        ("Completed cycles", summary.get("cycles_completed", 0)),
+        ("Median cycle time", fmt_seconds(summary.get("cycle_median_s"))),
+        ("Throughput", f'{summary.get("throughput_per_hour"):.1f} cakes/h' if summary.get("throughput_per_hour") is not None else "—"),
+        ("Median oven time", fmt_seconds(summary.get("burn_median_s"))),
+        ("Oven reference", f"{OVEN_TARGET_SECONDS:.1f} s"),
+        ("Vanilla / Strawberry / Blueberry", f'{colors["Vanilla"]} / {colors["Strawberry"]} / {colors["Blueberry"]}'),
+        ("Bottleneck stage", summary.get("bottleneck_stage") or "—"),
+        ("Bottleneck median", fmt_seconds(summary.get("bottleneck_median_s"))),
+        ("Telemetry samples", summary.get("samples", 0)),
+    ]
+    st.dataframe(pd.DataFrame(process_rows, columns=["Metric", "Value"]), use_container_width=True, hide_index=True)
+
 
 
 def render_role_visual(view: str, snap, process_state, clean, cycles, stages, events):
@@ -633,7 +709,6 @@ def render_role_visual(view: str, snap, process_state, clean, cycles, stages, ev
         render_department(view, snap, clean, cycles, stages, events)
     else:
         render_diagnostics(view, snap, process_state, clean, cycles, stages, events)
-    st.markdown('<div class="identity-footer">Cake-factory presentation layer. Plant signals remain read-only; oven temperature is the only simulated signal.</div>', unsafe_allow_html=True)
 
 
 # ------------------------------ main ---------------------------------------
@@ -660,11 +735,17 @@ with st.sidebar:
 
     if mode == SourceMode.SIMULATION.value:
         sim = get_sim()
+        seed_simulation_history()
         c1, c2 = st.columns(2)
         if c1.button("Pause / Run", use_container_width=True):
             sim.toggle(); st.rerun()
         if c2.button("Reset", use_container_width=True):
-            sim.reset(); st.rerun()
+            sim.reset()
+            st.session_state.history = History(max_rows=max(1200, SETTINGS.history_seconds * 4))
+            st.session_state.events = []
+            st.session_state.simulation_history_seeded = False
+            seed_simulation_history()
+            st.rerun()
     elif mode == SourceMode.REPLAY.value:
         st.markdown("### Replay")
         if not sessions:
@@ -820,5 +901,3 @@ render_role_visual(view, snap, process_state, clean, cycles, stages, events_df)
 
 if recorder.active:
     st.caption(f"Recording live session: `{recorder.session_dir.name}` · raw telemetry + cleaned analytics + events")
-else:
-    st.caption("Safety: read-only OPC UA access. No write nodes, actuator control, emergency reset, or PLC commands are implemented.")

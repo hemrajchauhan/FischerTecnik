@@ -112,12 +112,12 @@ The project includes tests for:
 
 The presentation layer has four focused views:
 
-- **Line Operator — Oven & line cockpit**: live status, emergency/critical/warning attention, cake cycle KPIs, cycle-cadence plot, simulated oven-temperature plot, and current process stage. This is the only operational view with prominent warning/critical handling and the virtual factory.
-- **QA Manager — Quality control room**: Vanilla/Strawberry/Blueberry production counts, NOK cakes, September complaints, latest cake table, and burn-time quality plot.
-- **Department Manager — Cake production overview**: OEE, availability, quality, complaints trend, and OEE component plot. No plant diagnostics or alarm detail is exposed here.
-- **Factory Diagnostics — Virtualisation & signal diagnostics**: full virtual factory, station states, observed stage-duration distributions, station activity, event timeline, and current sensor/actuator values. This is the technical inspection view rather than a management view.
+- **Line Operator — Cake line cockpit**: live status, emergency state, cake cycle KPIs, actual oven-time KPI, flavour counts, the virtual factory and two operational plots. Diagnostic alarm detail is kept out of this view.
+- **QA Manager — Quality control room**: Vanilla/Strawberry/Blueberry production counts, NOK cakes, latest cake table, actual oven-time quality plot, and the case-study complaint view.
+- **Department Manager — Cake production overview**: OEE, availability, quality, complaints trend, and OEE component plot. It remains management-focused and does not expose raw plant diagnostics.
+- **Factory Diagnostics — Virtualisation & signal diagnostics**: full virtual factory, station states, critical/warning/info events, event timeline, actual cycle timing, oven-time and temperature trends, stage-duration distributions, station activity, flavour counts, process summary, and current sensor/actuator/PLC-state values.
 
-The presentation is intentionally framed as a **Smart Cake Factory**: HBW is ingredient/tray storage, the crane is cake handling, the MS station is the baking oven and processing area, PM is decoration/finishing, and SL is quality inspection and dispatch. The physical Fischertechnik image remains the visual plant model.
+The presentation is intentionally framed as a **Smart Cake Factory**: HBW is ingredient/tray storage, the crane is cake handling, the MS station is the baking oven and processing area, PM is cake decoration/finishing, and SL is quality inspection, flavour sorting and dispatch. The physical Fischertechnik image remains the visual plant model.
 
 All plots are Plotly 2-D visuals using the TUM-style palette from `DASHBOARD_SPEC_1.md`: TUM blue for primary process data, light blue for supporting data, orange with hatching for anomalies, green only for the case-study complaint reduction, and no red/green combination.
 
@@ -129,6 +129,17 @@ Live/replay timing is measured from telemetry transitions rather than a fixed re
 - `actuator_on_s`: time the responsible actuator(s) were actually ON
 
 This prevents a long wait from being hidden inside a nominal stage duration.
+
+### Cake-factory timing and plots
+
+The dashboard distinguishes two timing concepts:
+
+- **Cake cycle time** is the actual material-flow duration from HBW pickup to sorting-line entry.
+- **Pickup cadence** is the interval between HBW pickups and is used separately for throughput/OEE performance.
+- **Oven time** is the actual interval while the burn signal is TRUE. The presentation target is **5 s**, with a **3–7 s tolerance** for the QA result.
+- The deterministic simulation follows a **55 s production cadence** and includes the preparation phase so its virtual process runs at the same reference clock as the presentation model. Live/replay mode never forces these reference durations onto plant data.
+
+The cycle and oven-time plots use integer cake numbers (1, 2, 3, …) rather than continuous fractional tick spacing.
 
 ### Plot-ready recording outputs
 

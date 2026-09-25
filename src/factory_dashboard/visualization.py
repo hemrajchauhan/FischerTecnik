@@ -120,30 +120,28 @@ def factory_figure(image_path: Path, statuses: Iterable[RegionStatus]) -> go.Fig
 
 
 def cycle_time_figure(cycles: pd.DataFrame, target_s: float = 55.0, height: int = 320) -> go.Figure:
-    """Cake material-flow cycle bars: HBW pickup -> sorting-line entry.
-
-    Pickup cadence is shown when available because it is the useful production
-    pacing measure. The actual cycle duration remains a separate physical KPI.
-    """
+    """Show actual material-flow cycle: HBW pickup -> sorting-line entry."""
     fig = _base_fig(height)
     if cycles is None or cycles.empty:
-        fig.add_annotation(text="No completed cake cycles in this window", x=.5, y=.5, showarrow=False,
-                           font=dict(size=16, color=MUTED))
+        fig.add_annotation(text="No completed cake cycles in this window", x=.5, y=.5,
+                           showarrow=False, font=dict(size=16, color=MUTED))
         return fig
     data = cycles.copy()
-    value_col = "pickup_interval_s" if "pickup_interval_s" in data.columns and data["pickup_interval_s"].notna().any() else "cycle_time_s"
-    data = data.dropna(subset=[value_col]).copy()
+    if "cycle_time_s" not in data.columns:
+        return fig
+    data = data.dropna(subset=["cycle_time_s"]).copy()
     if data.empty:
         return fig
     data["cycle"] = pd.to_numeric(data["cycle"], errors="coerce")
-    vals = pd.to_numeric(data[value_col], errors="coerce")
+    data = data.dropna(subset=["cycle"])
+    vals = pd.to_numeric(data["cycle_time_s"], errors="coerce")
     late = vals > target_s * 1.5
     fig.add_trace(go.Bar(
         x=data.loc[~late, "cycle"], y=vals.loc[~late],
         marker_color=TUM_BLUE,
         text=[f"{v:.0f} s" for v in vals.loc[~late]], textposition="outside",
-        hovertemplate="Cake %{x}<br>%{y:.1f} s<extra></extra>",
-        name="On time",
+        hovertemplate="Cake %{x}<br>Actual cycle time: %{y:.1f} s<extra></extra>",
+        name="Measured",
     ))
     if late.any():
         late_vals = vals.loc[late]
@@ -152,15 +150,57 @@ def cycle_time_figure(cycles: pd.DataFrame, target_s: float = 55.0, height: int 
             marker_color=ORANGE,
             marker_pattern_shape="/", marker_pattern_fgcolor="#FFFFFF", marker_pattern_size=7,
             text=[f"{v:.0f} s / +{max(v-target_s,0):.0f} late" for v in late_vals], textposition="outside",
-            hovertemplate="Cake %{x}<br>%{y:.1f} s<extra></extra>", name="Late",
+            hovertemplate="Cake %{x}<br>Actual cycle time: %{y:.1f} s<extra></extra>", name="Late",
         ))
     ymax = max(float(vals.max()) * 1.18, target_s * 1.25)
     fig.add_hline(y=target_s, line_color=GREY, line_dash="dash", line_width=2,
-                  annotation_text=f"target {target_s:.0f} s", annotation_position="top left",
+                  annotation_text=f"reference {target_s:.0f} s", annotation_position="top left",
                   annotation_font_color=MUTED)
+    max_cycle = int(data["cycle"].max()) if not data.empty else 1
     fig.update_layout(bargap=.28, margin=dict(l=25, r=15, t=24, b=40), yaxis_range=[0, ymax])
-    _clean_axes(fig, x_title="cake #", y_title=None)
-    fig.update_yaxes(showticklabels=False, showgrid=False)
+    _clean_axes(fig, x_title="cake #", y_title="seconds")
+    fig.update_xaxes(tickmode="linear", dtick=1, range=[0.5, max(1.5, max_cycle + 0.5)])
+    fig.update_yaxes(showticklabels=True, showgrid=False, dtick=10)
+    return fig
+
+
+def throughput_figure(cycles: pd.DataFrame, target_cadence_s: float = 55.0, height: int = 320) -> go.Figure:
+    """Show production cadence used to estimate cakes/hour.
+
+    Throughput is based on consecutive HBW pickup timestamps, not the
+    material-flow cycle duration. The latter can be shorter because the line
+    is pipelined.
+    """
+    fig = _base_fig(height)
+    if cycles is None or cycles.empty or "pickup_interval_s" not in cycles.columns:
+        fig.add_annotation(text="No pickup cadence available yet", x=.5, y=.5,
+                           showarrow=False, font=dict(size=16, color=MUTED))
+        return fig
+    data = cycles.dropna(subset=["pickup_interval_s"]).copy()
+    if data.empty:
+        fig.add_annotation(text="Need at least two HBW pickups", x=.5, y=.5,
+                           showarrow=False, font=dict(size=16, color=MUTED))
+        return fig
+    data["pickup_interval_s"] = pd.to_numeric(data["pickup_interval_s"], errors="coerce")
+    data = data.dropna(subset=["pickup_interval_s"])
+    if data.empty:
+        return fig
+    vals = data["pickup_interval_s"]
+    fig.add_trace(go.Bar(
+        x=data["cycle"], y=vals,
+        marker_color=TUM_BLUE,
+        text=[f"{v:.0f} s" for v in vals], textposition="outside",
+        hovertemplate="Pickup interval: %{y:.1f} s<br>Estimated throughput: %{customdata:.1f} cakes/h<extra></extra>",
+        customdata=3600.0 / vals.to_numpy(),
+    ))
+    ymax=max(float(vals.max()) * 1.2, target_cadence_s * 1.25)
+    fig.add_hline(y=target_cadence_s, line_color=GREY, line_dash="dash", line_width=2,
+                  annotation_text=f"reference {target_cadence_s:.0f} s", annotation_position="top left",
+                  annotation_font_color=MUTED)
+    fig.update_layout(margin=dict(l=25, r=15, t=24, b=40), bargap=.28, yaxis_range=[0, ymax])
+    _clean_axes(fig, x_title="pickup #", y_title="seconds")
+    fig.update_xaxes(tickmode="linear", dtick=1, range=[0.5, max(1.5, int(data["cycle"].max()) + 0.5)])
+    fig.update_yaxes(showticklabels=True, showgrid=False, dtick=10)
     return fig
 
 
@@ -200,7 +240,14 @@ def simulated_temperature_figure(df: pd.DataFrame, height: int = 320) -> go.Figu
     _clean_axes(fig, y_range=[170, 190])
     return fig
 
-def qa_burn_figure(stages: pd.DataFrame, height: int = 330, burn_lo: float = 3.0, burn_hi: float = 7.0) -> go.Figure:
+def qa_burn_figure(
+    stages: pd.DataFrame,
+    height: int = 330,
+    burn_lo: float = 3.0,
+    burn_hi: float = 7.0,
+    target_s: float = 5.0,
+) -> go.Figure:
+    """Show measured oven time per cake with a 5 s target and 3-7 s tolerance."""
     fig = _base_fig(height)
     if stages is None or stages.empty:
         return fig
@@ -212,18 +259,31 @@ def qa_burn_figure(stages: pd.DataFrame, height: int = 330, burn_lo: float = 3.0
     data["cake"] = np.arange(1, len(data) + 1)
     ok = data["elapsed_s"].between(burn_lo, burn_hi, inclusive="both")
     fig.add_hrect(y0=burn_lo, y1=burn_hi, fillcolor="rgba(176,176,181,0.20)", line_width=0)
-    fig.add_trace(go.Scatter(x=data.loc[ok, "cake"], y=data.loc[ok, "elapsed_s"], mode="lines+markers",
-                             line=dict(color=TUM_BLUE, width=2), marker=dict(size=8, color=TUM_BLUE, symbol="circle"),
-                             hovertemplate="Cake %{x}<br>%{y:.1f} s<extra></extra>"))
+    fig.add_hline(y=target_s, line_color=GREY, line_dash="dash", line_width=2,
+                  annotation_text=f"target {target_s:.0f} s", annotation_position="top left",
+                  annotation_font_color=MUTED)
+    if ok.any():
+        fig.add_trace(go.Scatter(
+            x=data.loc[ok, "cake"], y=data.loc[ok, "elapsed_s"], mode="lines+markers",
+            line=dict(color=TUM_BLUE, width=2), marker=dict(size=8, color=TUM_BLUE, symbol="circle"),
+            hovertemplate="Cake %{x}<br>Actual oven time: %{y:.2f} s<extra></extra>",
+            name="Within tolerance",
+        ))
     nok = data.loc[~ok]
     if not nok.empty:
-        fig.add_trace(go.Scatter(x=nok["cake"], y=nok["elapsed_s"], mode="markers+text",
-                                 text=[f"NOK {v:.0f} s" for v in nok["elapsed_s"]], textposition="top center",
-                                 marker=dict(size=11, color=ORANGE, symbol="diamond", line=dict(color=ORANGE_DARK, width=1)),
-                                 textfont=dict(color=ORANGE_DARK, size=12),
-                                 hovertemplate="Cake %{x}<br>NOK · %{y:.1f} s<extra></extra>"))
+        fig.add_trace(go.Scatter(
+            x=nok["cake"], y=nok["elapsed_s"], mode="markers+text",
+            text=[f"NOK {v:.1f} s" for v in nok["elapsed_s"]], textposition="top center",
+            marker=dict(size=11, color=ORANGE, symbol="diamond", line=dict(color=ORANGE_DARK, width=1)),
+            textfont=dict(color=ORANGE_DARK, size=12),
+            hovertemplate="Cake %{x}<br>NOK · Actual oven time: %{y:.2f} s<extra></extra>",
+            name="Outside tolerance",
+        ))
     fig.update_layout(margin=dict(l=35, r=15, t=10, b=40))
-    _clean_axes(fig, x_title="cake #", y_title="burn time (s)", y_range=[0, 8])
+    ymax = max(8, float(data["elapsed_s"].max()) * 1.2)
+    _clean_axes(fig, x_title="cake #", y_title="actual oven time (s)", y_range=[0, ymax])
+    fig.update_xaxes(tickmode="linear", dtick=1, range=[0.5, max(1.5, len(data) + 0.5)])
+    fig.update_yaxes(dtick=1)
     return fig
 
 
@@ -244,8 +304,8 @@ def complaints_figure(height: int = 300) -> go.Figure:
     ))
     fig.update_layout(margin=dict(l=15, r=15, t=15, b=45), bargap=.32)
     ymax = max(3, max(values, default=0) + 1)
-    _clean_axes(fig, x_title=None, y_title=None, y_range=[0, ymax])
-    fig.update_yaxes(showticklabels=False, showgrid=False)
+    _clean_axes(fig, x_title=None, y_title="complaints", y_range=[0, ymax])
+    fig.update_yaxes(showticklabels=True, showgrid=False, dtick=1)
     return fig
 
 
@@ -264,8 +324,8 @@ def cake_flavour_figure(counts: dict[str, int], height: int = 300) -> go.Figure:
     ))
     ymax = max(3, max(values, default=0) + 1)
     fig.update_layout(margin=dict(l=15, r=15, t=15, b=45), bargap=.28)
-    _clean_axes(fig, x_title="cake flavour", y_title=None, y_range=[0, ymax])
-    fig.update_yaxes(showticklabels=False, showgrid=False)
+    _clean_axes(fig, x_title="cake flavour", y_title="cakes", y_range=[0, ymax])
+    fig.update_yaxes(showticklabels=True, showgrid=False, dtick=1)
     return fig
 
 

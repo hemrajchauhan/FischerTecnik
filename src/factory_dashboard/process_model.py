@@ -12,14 +12,19 @@ from .tags import sensor_active_edges
 # live/replay mode does not use these durations as a clock.  The live plant is
 # clocked from its own signal transitions and the durations are measured from
 # the recorded timestamps.
+# Simulation/reference timing only. Live and replay measurements are always
+# taken from actual signal transitions and source timestamps.
+# The final preparation window completes the 55 s production cadence used by
+# the learning-factory process model. It is not imposed on live telemetry.
 REFERENCE_PHASES: tuple[tuple[str, float], ...] = (
     ("Baking", 5.0),
     ("Oven unloading", 2.0),
     ("Unload from oven", 9.0),
     ("Position for finishing", 11.0),
     ("Cake finishing", 4.0),
-    ("Move to quality inspection", 6.0),
+    ("Move to quality control & sorting", 6.0),
     ("Colour sorting & dispatch", 7.0),
+    ("Prepare next cake", 11.0),
 )
 REFERENCE_CYCLE_SECONDS = sum(duration for _, duration in REFERENCE_PHASES)
 
@@ -74,21 +79,21 @@ PROCESS_SENSORS = {
 }
 
 SENSOR_ALLOWED_PHASES = {
-    "oven": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality inspection", "Colour sorting & dispatch", "Prepare next cake"},
-    "ms_conveyor": {"Move to quality inspection", "Colour sorting & dispatch"},
-    "sorting_before_color": {"Move to quality inspection", "Colour sorting & dispatch"},
-    "sorting_after_color": {"Move to quality inspection", "Colour sorting & dispatch"},
+    "oven": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality control & sorting", "Colour sorting & dispatch", "Prepare next cake"},
+    "ms_conveyor": {"Move to quality control & sorting", "Colour sorting & dispatch"},
+    "sorting_before_color": {"Move to quality control & sorting", "Colour sorting & dispatch"},
+    "sorting_after_color": {"Move to quality control & sorting", "Colour sorting & dispatch"},
     # Storage light barriers report persistent occupancy and are independent
     # of the currently processed workpiece. A stored red/blue/white piece can
     # legitimately remain present while MS/HBW are processing another piece.
-    "white_storage": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality inspection", "Colour sorting & dispatch", "Prepare next cake"},
-    "red_storage": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality inspection", "Colour sorting & dispatch", "Prepare next cake"},
-    "blue_storage": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality inspection", "Colour sorting & dispatch", "Prepare next cake"},
+    "white_storage": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality control & sorting", "Colour sorting & dispatch", "Prepare next cake"},
+    "red_storage": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality control & sorting", "Colour sorting & dispatch", "Prepare next cake"},
+    "blue_storage": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality control & sorting", "Colour sorting & dispatch", "Prepare next cake"},
     "pm_entry": set(),
     "pm_tool": set(),
     # HBW is pipelined and may legitimately move during any MS phase.
-    "hbw_inside": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality inspection", "Colour sorting & dispatch", "Prepare next cake"},
-    "hbw_outside": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality inspection", "Colour sorting & dispatch", "Prepare next cake"},
+    "hbw_inside": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality control & sorting", "Colour sorting & dispatch", "Prepare next cake"},
+    "hbw_outside": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality control & sorting", "Colour sorting & dispatch", "Prepare next cake"},
 }
 
 # Only outputs for which a wrong phase is meaningful are checked. HBW/C are
@@ -100,14 +105,14 @@ ACTUATOR_ALLOWED_PHASES = {
     "ms.motor.transfer_oven": {"Unload from oven"},
     "ms.motor.transfer_turntable": {"Position for finishing", "Cake finishing"},
     "ms.motor.turntable_cw": {"Position for finishing", "Cake finishing"},
-    "ms.motor.turntable_ccw": {"Move to quality inspection", "Colour sorting & dispatch"},
+    "ms.motor.turntable_ccw": {"Move to quality control & sorting", "Colour sorting & dispatch"},
     "ms.motor.saw": {"Cake finishing"},
-    "ms.motor.conveyor": {"Move to quality inspection", "Colour sorting & dispatch"},
+    "ms.motor.conveyor": {"Move to quality control & sorting", "Colour sorting & dispatch"},
     "ms.valve.oven_door": {"Oven unloading", "Colour sorting & dispatch", "Prepare next cake"},
     "ms.valve.transfer": {"Unload from oven", "Position for finishing", "Cake finishing"},
     "ms.valve.vacuum": {"Unload from oven", "Position for finishing", "Cake finishing"},
-    "ms.valve.ejector": {"Cake finishing", "Move to quality inspection"},
-    "sl.motor.conveyor": {"Move to quality inspection", "Colour sorting & dispatch"},
+    "ms.valve.ejector": {"Cake finishing", "Move to quality control & sorting"},
+    "sl.motor.conveyor": {"Move to quality control & sorting", "Colour sorting & dispatch"},
     "sl.valve.white": {"Colour sorting & dispatch"},
     "sl.valve.red": {"Colour sorting & dispatch"},
     "sl.valve.blue": {"Colour sorting & dispatch"},
@@ -200,7 +205,7 @@ def infer_process_phase(values: dict[str, Any]) -> ExpectedProcess:
     if bool(values.get("ms.motor.saw", False)) or bool(values.get("ms.motor.turntable_cw", False)):
         return ExpectedProcess(4, "Cake finishing", frozenset(PROCESS_OUTPUTS["ms"]), "signal", plc_step)
     if bool(values.get("ms.motor.conveyor", False)) or bool(values.get("sl.motor.conveyor", False)):
-        return ExpectedProcess(5, "Move to quality inspection", frozenset(PROCESS_OUTPUTS["ms"] | PROCESS_OUTPUTS["sl"]), "signal", plc_step)
+        return ExpectedProcess(5, "Move to quality control & sorting", frozenset(PROCESS_OUTPUTS["ms"] | PROCESS_OUTPUTS["sl"]), "signal", plc_step)
     if any(bool(values.get(k, False)) for k in ("sl.valve.white", "sl.valve.red", "sl.valve.blue")):
         return ExpectedProcess(6, "Colour sorting & dispatch", frozenset(PROCESS_OUTPUTS["sl"]), "signal", plc_step)
     return ExpectedProcess(None, "Idle / waiting", frozenset(), "inferred", plc_step)
@@ -250,7 +255,7 @@ class ProcessMonitor:
         "Unload from oven",
         "Position for finishing",
         "Cake finishing",
-        "Move to quality inspection",
+        "Move to quality control & sorting",
         "Colour sorting & dispatch",
         "Prepare next cake",
     )
@@ -297,8 +302,12 @@ class ProcessMonitor:
         """Close the oldest unmatched material-flow cycle at sorting entry."""
         if not self._open_cycles:
             return None
+        # Ignore a sorting-line edge that belongs to a piece that entered the
+        # observed window before its HBW pickup. Keep the real pickup open.
+        if self._open_cycles[0][1] >= end:
+            return None
         cycle_number, start = self._open_cycles.popleft()
-        duration = max(0.0, (end - start).total_seconds())
+        duration = (end - start).total_seconds()
         record = CycleRecord(
             cycle=cycle_number,
             start=start,

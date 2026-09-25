@@ -14,6 +14,11 @@ from .tags import sensor_is_active
 BOOL_TRUE = {"true", "1", "1.0", "yes", "on"}
 BOOL_FALSE = {"false", "0", "0.0", "no", "off"}
 
+OVEN_TARGET_SECONDS = 5.0
+OVEN_TOLERANCE_LOW_SECONDS = 3.0
+OVEN_TOLERANCE_HIGH_SECONDS = 7.0
+CYCLE_TARGET_SECONDS = 55.0
+
 REGION_SIGNAL_MAP = {
     "HBW": tuple(sorted(PROCESS_OUTPUTS["hbw"])),
     "Crane": tuple(sorted(PROCESS_OUTPUTS["crane"])),
@@ -34,7 +39,7 @@ STAGE_DEFINITIONS = (
     {"stage": "Unload from oven", "start": "rise:ms.motor.transfer_oven", "end": "rise:ms.motor.transfer_turntable", "actuators": ("ms.motor.transfer_oven", "ms.valve.transfer", "ms.valve.vacuum")},
     {"stage": "Position for finishing", "start": "rise:ms.motor.transfer_turntable", "end": "rise:ms.motor.turntable_cw", "actuators": ("ms.motor.transfer_turntable", "ms.valve.transfer", "ms.valve.vacuum")},
     {"stage": "Cake finishing", "start": "rise:ms.motor.turntable_cw", "end": "rise:ms.motor.conveyor", "actuators": ("ms.motor.turntable_cw", "ms.motor.saw", "ms.motor.ejector" if False else "ms.motor.turntable_cw")},
-    {"stage": "Move to quality inspection", "start": "rise:ms.motor.conveyor", "end": "fall:ms.motor.conveyor", "actuators": ("ms.motor.conveyor", "sl.motor.conveyor")},
+    {"stage": "Move to quality control & sorting", "start": "rise:ms.motor.conveyor", "end": "fall:ms.motor.conveyor", "actuators": ("ms.motor.conveyor", "sl.motor.conveyor")},
 )
 
 def _bool_series(series: pd.Series) -> pd.Series:
@@ -361,9 +366,11 @@ def build_cycle_metrics(df: pd.DataFrame) -> pd.DataFrame:
     for _, end_time in ends:
         if not start_queue:
             continue
-        start_idx, start_time = start_queue.pop(0)
-        if end_time <= start_time:
+        # A replay/session can begin after an earlier piece already entered
+        # sorting. Never consume a later pickup because of that earlier end.
+        if start_queue[0][1] >= end_time:
             continue
+        start_idx, start_time = start_queue.pop(0)
         rows.append({
             "cycle": cycle_number,
             "start": start_time,
@@ -435,12 +442,14 @@ def kpi_summary(telemetry: pd.DataFrame, cycles: pd.DataFrame, stages: pd.DataFr
         "samples": int(len(clean)),
         "duration_s": float((clean["analysis_timestamp"].iloc[-1] - clean["analysis_timestamp"].iloc[0]).total_seconds()) if len(clean) > 1 and "analysis_timestamp" in clean.columns else 0.0,
         "cycles_completed": int(len(cycles)),
+        "cycle_target_s": CYCLE_TARGET_SECONDS,
     }
     if not cycles.empty:
         vals = cycles["cycle_time_s"].dropna()
         pickup = cycles.get("pickup_interval_s", pd.Series(dtype=float)).dropna()
         slow = pickup[pickup > 55.0 * 1.5] if not pickup.empty else pd.Series(dtype=float)
         summary.update({
+            "pickup_count": int(len(pickup) + 1) if not pickup.empty else 1,
             "cycle_avg_s": float(vals.mean()),
             "cycle_median_s": float(vals.median()),
             "cycle_min_s": float(vals.min()),
@@ -450,12 +459,13 @@ def kpi_summary(telemetry: pd.DataFrame, cycles: pd.DataFrame, stages: pd.DataFr
             "pickup_intervals_s": pickup.tolist(),
             "unplanned_stops": int(len(slow)),
             "stop_time_s": float((slow - 55.0).sum()) if not slow.empty else 0.0,
-            "throughput_per_hour": float(3600.0 / pickup.median()) if not pickup.empty and pickup.median() > 0 else (float(3600.0 / vals.median()) if vals.median() > 0 else 0.0),
+            "throughput_per_hour": float(3600.0 / pickup.median()) if not pickup.empty and pickup.median() > 0 else None,
+            "throughput_basis": "median HBW pickup-to-pickup cadence" if not pickup.empty else "insufficient pickup intervals",
             "cycle_definition": "HBW pickup to sorting-line entry; pickup cadence is measured separately for throughput",
         })
     else:
         summary.update({k: None for k in ("cycle_avg_s", "cycle_median_s", "cycle_min_s", "cycle_max_s", "cycle_std_s", "pickup_median_s", "throughput_per_hour")})
-        summary.update({"pickup_intervals_s": [], "unplanned_stops": 0, "stop_time_s": 0.0})
+        summary.update({"pickup_count": 0, "pickup_intervals_s": [], "throughput_basis": "no pickup intervals", "unplanned_stops": 0, "stop_time_s": 0.0})
     if not stages.empty:
         # Bottleneck means elapsed process-window time, not raw actuator ON
         # time. Direct actuator pulses remain available separately for
@@ -476,7 +486,10 @@ def kpi_summary(telemetry: pd.DataFrame, cycles: pd.DataFrame, stages: pd.DataFr
         burn = stages.loc[(stages["measurement"] == "stage_elapsed") & (stages["stage"] == "Baking"), "elapsed_s"].dropna()
     summary["burn_median_s"] = float(burn.median()) if not burn.empty else None
     summary["burn_values_s"] = burn.tolist()
-    summary["quality_passes"] = int(((burn >= 3.0) & (burn <= 7.0)).sum()) if not burn.empty else 0
+    summary["oven_target_s"] = OVEN_TARGET_SECONDS
+    summary["oven_tolerance_low_s"] = OVEN_TOLERANCE_LOW_SECONDS
+    summary["oven_tolerance_high_s"] = OVEN_TOLERANCE_HIGH_SECONDS
+    summary["quality_passes"] = int(((burn >= OVEN_TOLERANCE_LOW_SECONDS) & (burn <= OVEN_TOLERANCE_HIGH_SECONDS)).sum()) if not burn.empty else 0
     summary["quality_checks"] = int(len(burn))
     summary["fpy"] = float(summary["quality_passes"] / summary["quality_checks"]) if summary["quality_checks"] else None
     if events is not None and not events.empty:

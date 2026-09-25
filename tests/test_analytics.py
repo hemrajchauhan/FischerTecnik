@@ -78,3 +78,36 @@ def test_time_weighted_activity_uses_analysis_time(monkeypatch):
     bar = fig.data[0]
     ms_value = float(bar.y[list(bar.x).index("MS")])
     assert round(ms_value, 6) == round(100.0 / 9.0, 6)
+
+
+def test_throughput_uses_pickup_cadence_not_material_cycle_time():
+    from factory_dashboard.analytics import kpi_summary
+    df = _df([
+        {"c.valve.vacuum": False, "hbw.sensor.outside": True, "sl.sensor.before_color": True},
+        {"c.valve.vacuum": True, "hbw.sensor.outside": False, "sl.sensor.before_color": True},
+        {"c.valve.vacuum": False, "hbw.sensor.outside": True, "sl.sensor.before_color": False},
+        {"c.valve.vacuum": False, "hbw.sensor.outside": True, "sl.sensor.before_color": True},
+        {"c.valve.vacuum": True, "hbw.sensor.outside": False, "sl.sensor.before_color": True},
+        {"c.valve.vacuum": False, "hbw.sensor.outside": True, "sl.sensor.before_color": False},
+    ])
+    clean = clean_telemetry(df)
+    cycles = build_cycle_metrics(clean)
+    summary = kpi_summary(clean, cycles, pd.DataFrame())
+    assert len(cycles) == 2
+    assert cycles.iloc[1]["pickup_interval_s"] == 3
+    assert summary["throughput_per_hour"] == 1200.0
+    assert summary["throughput_basis"] == "median HBW pickup-to-pickup cadence"
+
+
+def test_throughput_is_not_derived_from_single_material_cycle():
+    from factory_dashboard.analytics import kpi_summary
+    df = _df([
+        {"c.valve.vacuum": False, "hbw.sensor.outside": True, "sl.sensor.before_color": True},
+        {"c.valve.vacuum": True, "hbw.sensor.outside": False, "sl.sensor.before_color": True},
+        {"c.valve.vacuum": False, "hbw.sensor.outside": True, "sl.sensor.before_color": False},
+    ])
+    clean = clean_telemetry(df)
+    cycles = build_cycle_metrics(clean)
+    summary = kpi_summary(clean, cycles, pd.DataFrame())
+    assert len(cycles) == 1
+    assert summary["throughput_per_hour"] is None

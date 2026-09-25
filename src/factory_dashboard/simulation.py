@@ -43,32 +43,46 @@ class FactorySimulation:
         now = datetime.now(timezone.utc)
         elapsed = (now - self.t0).total_seconds() if self.running else self.offset
         self.offset = max(0.0, elapsed)
+        return self.snapshot_at_elapsed(self.offset, timestamp=now, update_state=True)
 
+    def snapshot_at_elapsed(
+        self,
+        elapsed: float,
+        *,
+        timestamp: datetime | None = None,
+        update_state: bool = False,
+    ) -> Snapshot:
+        """Create a deterministic snapshot at a specific simulation time.
+
+        Used to seed the dashboard with a short, realistic history so every
+        chart is useful immediately in simulation mode. It does not affect the
+        live simulation clock unless ``update_state`` is True.
+        """
+        now = timestamp or (self.t0 + timedelta(seconds=max(0.0, elapsed)))
+        elapsed = max(0.0, float(elapsed))
         zero_based_cycle = int(elapsed // self.CYCLE_SECONDS)
-        self._last_cycle = zero_based_cycle + 1
+        cycle_number = zero_based_cycle + 1
         cycle_time = elapsed % self.CYCLE_SECONDS
         phase_index, phase, phase_elapsed, phase_remaining = phase_from_elapsed(cycle_time)
 
         color_value, color_name = self.COLORS[zero_based_cycle % len(self.COLORS)]
         values = self._base_values()
         self._apply_phase(values, phase_index, color_value, color_name)
-        # Realistic dummy oven temperature for the cake-factory presentation.
-        # This is not a PLC sensor value.
+        # Deterministic dummy oven temperature. This is presentation data, not
+        # a physical temperature node.
         oven_temperature = 180.0 + 2.2 * math.sin(elapsed / 21.0) + 0.9 * math.sin(elapsed / 6.5)
         values.update({
             "sim.phase": phase,
             "sim.phase_index": phase_index,
             "sim.phase_elapsed_s": phase_elapsed,
             "sim.phase_remaining_s": phase_remaining,
-            "sim.cycle": self._last_cycle,
+            "sim.cycle": cycle_number,
             "sim.cycle_elapsed_s": cycle_time,
             "sim.cycle_period_s": self.CYCLE_SECONDS,
             "sim.running": self.running,
             "sim.oven_temperature_c": oven_temperature,
             "sl.sensor.color_value": color_value,
             "sim.color": color_name,
-            # Keep PLC step as a simulated reported value only. It does not gate
-            # the station activity model.
             "local.ms_step": self._ms_step_for_phase(phase_index),
             "local.emergency_not_pressed": True,
             "local.emergency_memory": False,
@@ -79,6 +93,8 @@ class FactorySimulation:
             "local.crane_coord_r": 500,
             "local.sl_workpiece_coord": 3 if phase_index in (6, 7) else 0,
         })
+        if update_state:
+            self._last_cycle = cycle_number
         return Snapshot(
             timestamp=now,
             values=values,
@@ -86,7 +102,7 @@ class FactorySimulation:
             source=SourceMode.SIMULATION,
             connected=True,
             emergency=False,
-            message=f"Simulation: cycle {self._last_cycle} · {phase} · {color_name} workpiece",
+            message=f"Simulation: cycle {cycle_number} · {phase} · {color_name} workpiece",
             health=Health.OK,
             last_good_timestamp=now,
             good_count=len(values),
@@ -131,10 +147,10 @@ class FactorySimulation:
         # The cycle is anchored at burning. HBW/C work is deliberately placed in
         # the final phase to demonstrate the real pipeline: the next workpiece
         # can be prepared while the current one is completing sorting.
-        if phase == 0:  # Baking + start next cake from ingredient/tray storage
+        if phase == 0:  # Baking; the next HBW pickup occurs in Prepare next cake
             values["ms.process.burn"] = True
-            values["hbw.sensor.outside"] = False
-            values["c.valve.vacuum"] = True
+            values["hbw.sensor.outside"] = True
+            values["c.valve.vacuum"] = False
             values["ms.sensor.oven"] = True
         elif phase == 1:  # Oven unloading
             values["c.valve.vacuum"] = False
@@ -160,7 +176,7 @@ class FactorySimulation:
             values["ms.motor.saw"] = True
             values["pm.motor.tool_down"] = True
             values["pm.motor.conveyor_forward"] = True
-        elif phase == 5:  # Move to quality inspection / piece enters inspection line
+        elif phase == 5:  # Move to quality control & sorting / piece enters sorting line
             values["c.valve.vacuum"] = False
             values["hbw.sensor.outside"] = True
             values["ms.motor.conveyor"] = True

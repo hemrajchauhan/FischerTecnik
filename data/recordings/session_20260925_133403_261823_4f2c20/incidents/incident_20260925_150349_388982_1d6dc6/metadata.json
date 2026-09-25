@@ -1,0 +1,24 @@
+{
+  "incident_id": "incident_20260925_150349_388982_1d6dc6",
+  "session": "session_20260925_133403_261823_4f2c20",
+  "event": {
+    "timestamp": "2026-09-25T15:03:49.388982+00:00",
+    "category": "PROCESS_LOGIC",
+    "severity": "CRITICAL",
+    "code": "PROCESS_UNEXPECTED_ACTUATOR_FOR_PHASE:sl.motor.conveyor:",
+    "message": "sl.motor.conveyor is active during Baking, outside its expected process window.",
+    "details": {
+      "kind": "unexpected_actuator_for_phase",
+      "tag": "sl.motor.conveyor",
+      "expected": [
+        "Colour sorting & dispatch",
+        "Move to quality control & sorting"
+      ],
+      "actual": true,
+      "phase": "Baking",
+      "message": "sl.motor.conveyor is active during Baking, outside its expected process window."
+    }
+  },
+  "pre_seconds": 60.0,
+  "post_seconds": 60.0
+}

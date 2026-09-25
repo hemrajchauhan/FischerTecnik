@@ -1,0 +1,26 @@
+{
+  "incident_id": "incident_20260925_150724_795303_7f5b20",
+  "session": "session_20260925_133403_261823_4f2c20",
+  "event": {
+    "timestamp": "2026-09-25T15:07:24.795303+00:00",
+    "category": "PROCESS_LOGIC",
+    "severity": "CRITICAL",
+    "code": "PROCESS_UNEXPECTED_ACTUATOR_FOR_PHASE:ms.motor.slider_in:",
+    "message": "ms.motor.slider_in is active during Move to quality control & sorting, outside its expected process window.",
+    "details": {
+      "kind": "unexpected_actuator_for_phase",
+      "tag": "ms.motor.slider_in",
+      "expected": [
+        "Baking",
+        "Colour sorting & dispatch",
+        "Oven unloading",
+        "Prepare next cake"
+      ],
+      "actual": true,
+      "phase": "Move to quality control & sorting",
+      "message": "ms.motor.slider_in is active during Move to quality control & sorting, outside its expected process window."
+    }
+  },
+  "pre_seconds": 60.0,
+  "post_seconds": 60.0
+}

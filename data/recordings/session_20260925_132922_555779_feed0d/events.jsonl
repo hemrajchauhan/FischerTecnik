@@ -1,0 +1,1 @@
+{"timestamp": "2026-09-25T13:30:19.804578+00:00", "category": "TELEMETRY", "severity": "WARNING", "code": "BAD_VALUES", "message": "80 telemetry value(s) could not be read.", "details": {}, "snapshot_id": 156, "recovered": false}

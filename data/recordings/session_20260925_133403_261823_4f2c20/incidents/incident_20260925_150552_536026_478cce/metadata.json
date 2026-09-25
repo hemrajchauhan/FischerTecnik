@@ -1,0 +1,25 @@
+{
+  "incident_id": "incident_20260925_150552_536026_478cce",
+  "session": "session_20260925_133403_261823_4f2c20",
+  "event": {
+    "timestamp": "2026-09-25T15:05:52.536026+00:00",
+    "category": "PROCESS_LOGIC",
+    "severity": "CRITICAL",
+    "code": "PROCESS_UNEXPECTED_ACTUATOR_FOR_PHASE:ms.valve.oven_door:",
+    "message": "ms.valve.oven_door is active during Baking, outside its expected process window.",
+    "details": {
+      "kind": "unexpected_actuator_for_phase",
+      "tag": "ms.valve.oven_door",
+      "expected": [
+        "Colour sorting & dispatch",
+        "Oven unloading",
+        "Prepare next cake"
+      ],
+      "actual": true,
+      "phase": "Baking",
+      "message": "ms.valve.oven_door is active during Baking, outside its expected process window."
+    }
+  },
+  "pre_seconds": 60.0,
+  "post_seconds": 60.0
+}

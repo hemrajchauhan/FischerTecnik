@@ -1,0 +1,6 @@
+cycle,start,end,duration_s,start_event,end_event,cycle_definition
+1,2026-09-25T15:03:49.367981+00:00,2026-09-25T15:03:50.127025+00:00,0.759044,HBW pickup,Sorting-line entry,HBW pickup -> sorting-line entry
+2,2026-09-25T15:04:42.661029+00:00,2026-09-25T15:05:27.739608+00:00,45.078579,HBW pickup,Sorting-line entry,HBW pickup -> sorting-line entry
+3,2026-09-25T15:05:35.878073+00:00,2026-09-25T15:06:20.925650+00:00,45.047577,HBW pickup,Sorting-line entry,HBW pickup -> sorting-line entry
+4,2026-09-25T15:06:22.465738+00:00,2026-09-25T15:07:07.651322+00:00,45.185584,HBW pickup,Sorting-line entry,HBW pickup -> sorting-line entry
+5,2026-09-25T15:07:15.444768+00:00,2026-09-25T15:08:00.650354+00:00,45.205586,HBW pickup,Sorting-line entry,HBW pickup -> sorting-line entry

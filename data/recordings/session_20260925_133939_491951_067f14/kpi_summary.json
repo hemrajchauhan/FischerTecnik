@@ -1,0 +1,36 @@
+{
+  "samples": 282,
+  "duration_s": 109.62627,
+  "cycles_completed": 2,
+  "cycle_target_s": 55.0,
+  "pickup_count": 2,
+  "cycle_avg_s": 44.837564,
+  "cycle_median_s": 44.837564,
+  "cycle_min_s": 44.824563,
+  "cycle_max_s": 44.850565,
+  "cycle_std_s": 0.013001000000002705,
+  "pickup_median_s": 52.662012,
+  "pickup_intervals_s": [
+    52.662012
+  ],
+  "unplanned_stops": 0,
+  "stop_time_s": 0.0,
+  "throughput_per_hour": 68.36047206096114,
+  "throughput_basis": "median HBW pickup-to-pickup cadence",
+  "cycle_definition": "HBW pickup to sorting-line entry; pickup cadence is measured separately for throughput",
+  "bottleneck_stage": "Colour sorting & dispatch",
+  "bottleneck_median_s": 12.844735,
+  "burn_median_s": 5.136293500000001,
+  "burn_values_s": [
+    5.165295,
+    5.107292
+  ],
+  "oven_target_s": 5.0,
+  "oven_tolerance_low_s": 3.0,
+  "oven_tolerance_high_s": 7.0,
+  "quality_passes": 2,
+  "quality_checks": 2,
+  "fpy": 1.0,
+  "critical_events": 2,
+  "warning_events": 0
+}
