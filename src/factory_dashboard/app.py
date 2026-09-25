@@ -1,20 +1,26 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
+
+# Streamlit executes app.py as a script. Add the src directory explicitly so
+# package imports work reliably with both `uv run streamlit run ...` and direct runs.
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import pandas as pd
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
-from .config import ASSETS, DATA, SETTINGS
-from .data_source import ReplayDataSource
-from .history import History
-from .recorder import TelemetryRecorder
-from .logic import color_class, emergency_source, fault_summary, process_phase, region_statuses
-from .models import Health, Snapshot, SourceMode
-from .opcua_client import OpcUaReader
-from .simulation import FactorySimulation
-from .visualization import factory_figure, trend_figure
+from factory_dashboard.config import ASSETS, DATA, SETTINGS
+from factory_dashboard.data_source import ReplayDataSource
+from factory_dashboard.history import History
+from factory_dashboard.recorder import TelemetryRecorder
+from factory_dashboard.logic import color_class, emergency_source, fault_summary, process_phase, region_statuses
+from factory_dashboard.models import Health, Snapshot, SourceMode
+from factory_dashboard.opcua_client import OpcUaReader
+from factory_dashboard.simulation import FactorySimulation
+from factory_dashboard.visualization import factory_figure, trend_figure
 
 
 st.set_page_config(page_title="Fischertechnik Factory Monitor", page_icon="🏭", layout="wide")
@@ -22,7 +28,7 @@ st.set_page_config(page_title="Fischertechnik Factory Monitor", page_icon="🏭"
 
 @st.cache_data(show_spinner=False)
 def tag_descriptions() -> dict[str, str]:
-    from .tags import TAGS
+    from factory_dashboard.tags import TAGS
     return {key: tag.description for key, tag in TAGS.items()}
 
 
