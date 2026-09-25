@@ -16,7 +16,7 @@ def test_burning_highlights_ms():
 
 
 def test_process_phase_uses_physical_signal():
-    assert process_phase(snap({"ms.motor.saw": True})) == "Sawing"
+    assert process_phase(snap({"ms.motor.saw": True})) == "Cake finishing"
 
 
 def test_color_thresholds_match_plc():

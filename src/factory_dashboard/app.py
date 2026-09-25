@@ -18,7 +18,7 @@ import pandas as pd
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
-from .analytics import attach_source_timestamps, build_cycle_metrics, build_stage_metrics, clean_telemetry, kpi_summary
+from .analytics import attach_source_timestamps, build_color_counts, build_cycle_metrics, build_stage_metrics, clean_telemetry, kpi_summary
 from .config import ASSETS, DATA, SETTINGS
 from .data_source import ReplayDataSource
 from .event_engine import Event, EventEngine
@@ -29,12 +29,17 @@ from .opcua_client import OpcUaReader
 from .recorder import TelemetryRecorder
 from .simulation import FactorySimulation
 from .visualization import (
+    complaints_figure,
+    cake_flavour_figure,
+    case_study_complaints,
     cycle_time_figure,
     event_timeline_figure,
     factory_figure,
+    oee_components_figure,
+    qa_burn_figure,
+    simulated_temperature_figure,
     stage_duration_figure,
     station_activity_figure,
-    trend_figure,
 )
 
 st.set_page_config(page_title="Fischertechnik Factory Monitor", page_icon="🏭", layout="wide")
@@ -327,44 +332,46 @@ def fmt_seconds(value) -> str:
 
 
 def inject_visual_identity() -> None:
-    """Apply the visual system from DASHBOARD_SPEC_1.md.
-
-    This pass intentionally contains no analytical charts. It focuses on the
-    shell, status banner, KPI cards, factory visualisation and station cards.
-    """
+    """Cake-factory visual system based on DASHBOARD_SPEC_1.md and the supplied references."""
     st.markdown(
         """
         <style>
         :root { --tum-blue:#0065BD; --light-blue:#98C6EA; --orange:#F28C28; --orange-dark:#B34700; --green:#2E8B57; --grey:#B0B0B5; --ink:#1D1D1F; --muted:#595960; --grid:#E5E5EA; }
         html, body, [class*="css"] { font-family: Arial, sans-serif; }
-        .block-container { padding-top: 1.2rem; padding-bottom: 2.5rem; max-width: 1500px; }
-        [data-testid="stSidebar"] { background:#F7F8FA; border-right:1px solid var(--grid); }
-        .identity-eyebrow { color:var(--tum-blue); font-size:.82rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase; margin-bottom:.15rem; }
-        .identity-title { color:var(--ink); font-size:2rem; line-height:1.12; font-weight:700; margin:0; }
-        .identity-subtitle { color:var(--muted); font-size:1rem; margin-top:.45rem; margin-bottom:1.05rem; }
-        .source-pill { display:inline-block; background:#F2F4F7; color:var(--ink); border:1px solid var(--grid); border-radius:999px; padding:.45rem .75rem; font-size:.82rem; font-weight:700; white-space:nowrap; }
-        .status-banner { border-radius:20px; padding:1rem 1.15rem; margin:.2rem 0 1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; border:1px solid transparent; }
-        .status-banner .state { font-size:1.15rem; font-weight:800; letter-spacing:.02em; }
-        .status-banner .meta { color:var(--muted); font-size:.92rem; text-align:right; }
+        .block-container { padding-top: 1.1rem; padding-bottom: 2rem; max-width: 1500px; }
+        [data-testid="stSidebar"] { background:#F3F5F8; border-right:1px solid var(--grid); }
+        [data-testid="stSidebar"] .block-container { padding-top:1.1rem; }
+        .identity-eyebrow { color:var(--tum-blue); font-size:.78rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; margin-bottom:.25rem; }
+        .identity-title { color:var(--ink); font-size:2rem; line-height:1.08; font-weight:750; margin:0; }
+        .identity-subtitle { color:var(--muted); font-size:.96rem; margin-top:.42rem; margin-bottom:1rem; }
+        .source-pill { background:#F6F7F9; color:var(--ink); border:1px solid var(--grid); border-radius:999px; padding:.45rem .78rem; font-size:.76rem; font-weight:700; white-space:nowrap; }
+        .status-banner { border-radius:20px; padding:1rem 1.2rem; margin:.15rem 0 1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; border:1px solid transparent; }
+        .status-banner .state { font-size:1.3rem; font-weight:850; letter-spacing:.02em; }
+        .status-banner .meta { color:var(--muted); font-size:.88rem; text-align:right; }
         .status-live { background:#EAF3FB; border-color:#C9E2F5; } .status-live .state { color:var(--tum-blue); }
         .status-stop,.status-alert { background:#FFF2E8; border-color:#F7D1B2; } .status-stop .state,.status-alert .state { color:var(--orange-dark); }
         .status-idle { background:#F2F2F4; border-color:#DEDEE2; } .status-idle .state { color:var(--muted); }
         .status-replay { background:#EEF6FD; border-color:#C9E2F5; } .status-replay .state { color:var(--tum-blue); }
-        .kpi-card { background:#fff; border:1px solid var(--grid); border-radius:18px; padding:1rem 1rem .9rem; min-height:118px; box-shadow:0 4px 18px rgba(29,31,33,.06); }
-        .kpi-label { color:var(--muted); font-size:.73rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; margin-bottom:.35rem; }
-        .kpi-value { color:var(--ink); font-size:2.05rem; line-height:1.05; font-weight:700; }
-        .kpi-value.attention { color:var(--orange-dark); } .kpi-sub { color:var(--muted); font-size:.82rem; margin-top:.45rem; }
-        .section-title { color:var(--ink); font-size:1.18rem; font-weight:700; margin:.4rem 0 .25rem; }
-        .section-note { color:var(--muted); font-size:.88rem; margin-bottom:.7rem; }
-        .station-card { background:#fff; border:1px solid var(--grid); border-radius:16px; padding:.85rem .9rem; margin-bottom:.55rem; box-shadow:0 3px 14px rgba(29,31,33,.045); }
+        .kpi-card { background:#fff; border:1px solid var(--grid); border-radius:18px; padding:.95rem 1rem .82rem; min-height:112px; box-shadow:0 5px 18px rgba(29,31,33,.055); }
+        .kpi-label { color:var(--muted); font-size:.68rem; font-weight:850; letter-spacing:.12em; text-transform:uppercase; margin-bottom:.38rem; }
+        .kpi-value { color:var(--ink); font-size:2.0rem; line-height:1.05; font-weight:750; }
+        .kpi-value.attention { color:var(--orange-dark); } .kpi-sub { color:var(--muted); font-size:.78rem; margin-top:.42rem; }
+        .section-title { color:var(--ink); font-size:1.22rem; font-weight:750; margin:.5rem 0 .22rem; }
+        .chart-headline { color:var(--ink); font-size:1.35rem; line-height:1.14; font-weight:750; margin:.35rem 0 .18rem; }
+        .section-note { color:var(--muted); font-size:.84rem; margin-bottom:.45rem; }
+        .factory-frame { background:#fff; border:1px solid var(--grid); border-radius:20px; padding:.4rem; box-shadow:0 5px 18px rgba(29,31,33,.055); }
+        .station-card { background:#fff; border:1px solid var(--grid); border-radius:15px; padding:.72rem .82rem; margin-bottom:.48rem; box-shadow:0 3px 12px rgba(29,31,33,.04); }
         .station-top { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
-        .station-name { color:var(--ink); font-weight:700; font-size:.94rem; }
-        .station-state { font-size:.72rem; font-weight:800; letter-spacing:.04em; }
-        .station-detail { color:var(--muted); font-size:.77rem; margin-top:.35rem; line-height:1.35; }
+        .station-name { color:var(--ink); font-weight:750; font-size:.88rem; }
+        .station-state { font-size:.68rem; font-weight:850; letter-spacing:.06em; }
+        .station-detail { color:var(--muted); font-size:.73rem; margin-top:.3rem; line-height:1.35; }
         .dot-active { color:var(--tum-blue); } .dot-idle { color:var(--grey); } .dot-alert { color:var(--orange-dark); }
-        .factory-frame { background:#fff; border:1px solid var(--grid); border-radius:20px; padding:.55rem; box-shadow:0 4px 18px rgba(29,31,33,.06); }
-        .identity-footer { color:#7A7A80; font-size:.76rem; margin-top:.9rem; }
-        div[data-testid="stMetric"] { background:#fff; border:1px solid var(--grid); border-radius:18px; padding:.7rem .8rem; box-shadow:0 4px 18px rgba(29,31,33,.05); }
+        .alert-card { border-left:4px solid var(--orange); background:#FFF7F0; border-radius:12px; padding:.72rem .85rem; margin:.45rem 0; }
+        .alert-title { color:var(--orange-dark); font-weight:800; font-size:.84rem; }
+        .alert-detail { color:var(--muted); font-size:.77rem; margin-top:.15rem; }
+        .identity-footer { color:#7A7A80; font-size:.72rem; margin-top:.9rem; }
+        div[data-testid="stMetric"] { background:#fff; border:1px solid var(--grid); border-radius:16px; padding:.65rem .75rem; box-shadow:0 4px 14px rgba(29,31,33,.04); }
+        div[data-testid="stDataFrame"] { border-radius:14px; overflow:hidden; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -373,9 +380,10 @@ def inject_visual_identity() -> None:
 
 def role_title(view: str) -> tuple[str, str]:
     return {
-        "Operating Manager": ("Operating Manager", "Live factory cockpit"),
-        "Line Manager": ("Line Manager", "Line performance and station state"),
-        "General Management": ("General Management", "Operations overview"),
+        "Line Operator": ("Line Operator", "Cake line cockpit"),
+        "QA Manager": ("QA Manager", "Quality control room"),
+        "Department Manager": ("Department Manager", "Cake production overview"),
+        "Factory Diagnostics": ("Factory Diagnostics", "Virtualisation & signal diagnostics"),
     }[view]
 
 
@@ -383,17 +391,17 @@ def source_pill(snap: Snapshot) -> str:
     label = "LIVE" if snap.source == SourceMode.LIVE else f"REPLAY {st.session_state.get('replay_speed', 1)}×" if snap.source == SourceMode.REPLAY else "SIMULATION"
     stamp = snap.source_timestamp_reference or snap.timestamp
     ts = pd.to_datetime(stamp, utc=True, errors="coerce")
-    time_text = ts.strftime("%H:%M:%S UTC") if not pd.isna(ts) else "—"
+    time_text = ts.tz_convert("Europe/Berlin").strftime("%d %b %Y %H:%M:%S") if not pd.isna(ts) else "—"
     return f"{label} · {time_text}"
 
 
 def render_identity_header(view: str, snap: Snapshot) -> None:
-    title, subtitle = role_title(view)
+    role, title = role_title(view)
     st.markdown(
         f'''<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;">
-        <div><div class="identity-eyebrow">SMART FACTORY · {title.upper()}</div>
-        <div class="identity-title">{subtitle}</div>
-        <div class="identity-subtitle">Read-only virtualisation of the Fischertechnik production line.</div></div>
+        <div><div class="identity-eyebrow">SMART CAKE FACTORY · {role.upper()}</div>
+        <div class="identity-title">{title}</div>
+        <div class="identity-subtitle">Fischertechnik production data presented as a cake manufacturing line.</div></div>
         <div class="source-pill">{source_pill(snap)}</div></div>''',
         unsafe_allow_html=True,
     )
@@ -413,7 +421,7 @@ def render_status_banner(snap: Snapshot, process_state) -> None:
     elif snap.source == SourceMode.SIMULATION:
         css, state = "status-live", "SIMULATION RUNNING"
     else:
-        css, state = "status-live", "FACTORY ACTIVE"
+        css, state = "status-live", "CAKE LINE RUNNING"
     elapsed = fmt_seconds(getattr(process_state, "phase_elapsed_s", None))
     detail = f"Stage: {process_state.phase} · Stage elapsed: {elapsed}"
     st.markdown(f'''<div class="status-banner {css}"><div class="state">{state}</div><div class="meta">{detail}</div></div>''', unsafe_allow_html=True)
@@ -424,48 +432,43 @@ def identity_kpi(label: str, value: str, sub: str = "", attention: bool = False)
     return f'''<div class="kpi-card"><div class="kpi-label">{label}</div><div class="{cls}">{value}</div><div class="kpi-sub">{sub}</div></div>'''
 
 
-def render_identity_kpis(view: str, summary: dict, snap: Snapshot, process_state) -> None:
-    regions = region_statuses(snap)
-    active = sum(r.active for r in regions)
-    warnings = int(summary.get("warning_events", 0) or 0)
-    critical = int(summary.get("critical_events", 0) or 0)
-    if view == "Operating Manager":
-        cards = [
-            identity_kpi("Cycles completed", str(summary.get("cycles_completed", 0)), "Completed production cycles"),
-            identity_kpi("Current stage", process_state.phase, f"Elapsed {fmt_seconds(process_state.phase_elapsed_s)}"),
-            identity_kpi("Active regions", f"{active}/5", "Physical process outputs"),
-            identity_kpi("Events", str(warnings + critical), f"{warnings} warnings · {critical} critical", attention=critical > 0),
-        ]
-    elif view == "Line Manager":
-        cards = [
-            identity_kpi("Cycles completed", str(summary.get("cycles_completed", 0)), "Production flow"),
-            identity_kpi("Median cycle", fmt_seconds(summary.get("cycle_median_s")), "Pickup to sorting line"),
-            identity_kpi("Bottleneck", summary.get("bottleneck_stage") or "—", "Observed stage duration"),
-            identity_kpi("Active regions", f"{active}/5", "Current physical activity"),
-        ]
-    else:
-        cards = [
-            identity_kpi("Cycles completed", str(summary.get("cycles_completed", 0)), "Production output"),
-            identity_kpi("Throughput", f"{summary.get('throughput_per_hour', 0):.1f}/h" if summary.get("throughput_per_hour") else "—", "Observed production rate"),
-            identity_kpi("Warnings", str(warnings), "Recorded process/system warnings", attention=warnings > 0),
-            identity_kpi("Critical events", str(critical), "Requires immediate review", attention=critical > 0),
-        ]
+def render_kpis(cards: list[str]) -> None:
     cols = st.columns(len(cards))
     for col, card in zip(cols, cards):
         with col:
             st.markdown(card, unsafe_allow_html=True)
 
 
-def render_factory_identity(snap: Snapshot) -> None:
+def _oee_values(summary: dict) -> tuple[float, float, float, float]:
+    elapsed = max(float(summary.get("duration_s") or 1.0), 1.0)
+    downtime = float(summary.get("stop_time_s") or 0.0)
+    availability = max(0.0, min(1.0, 1.0 - downtime / elapsed))
+    pickup = pd.Series(summary.get("pickup_intervals_s") or [], dtype=float).dropna()
+    nonslow = pickup[pickup <= 55.0 * 1.5]
+    median_pickup = float(nonslow.median()) if not nonslow.empty else 55.0
+    performance = max(0.0, min(1.0, 55.0 / median_pickup))
+    quality = float(summary.get("fpy")) if summary.get("fpy") is not None else 1.0
+    oee = availability * performance * quality
+    return availability, performance, quality, oee
+
+
+def render_factory_identity(snap: Snapshot, *, compact: bool = False) -> None:
     regions = region_statuses(snap)
-    st.markdown('<div class="section-title">Factory virtualisation</div><div class="section-note">Physical process outputs drive highlighted regions. Sensor/reference states remain diagnostics.</div>', unsafe_allow_html=True)
-    left, right = st.columns([1.75, 1])
+    st.markdown('<div class="section-title">Cake factory virtualisation</div><div class="section-note">Highlighted areas are driven by physical process outputs. Sensor/reference states are kept separate from activity.</div>', unsafe_allow_html=True)
+    left, right = st.columns([1.85, 1] if not compact else [1.55, 1])
     with left:
         st.markdown('<div class="factory-frame">', unsafe_allow_html=True)
         st.plotly_chart(factory_figure(ASSETS / "factory_overview.jpg", regions), use_container_width=True, config={"displayModeBar": False})
         st.markdown('</div>', unsafe_allow_html=True)
     with right:
-        st.markdown('<div class="section-title">Station status</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Cake-line stations</div>', unsafe_allow_html=True)
+        cake_labels = {
+            "Ingredient & Tray Storage": "Ingredient & tray storage",
+            "Cake Handling Crane": "Cake handling",
+            "Baking Oven & Processing": "Baking oven & processing",
+            "Decoration / Finishing": "Decoration / finishing",
+            "Quality Inspection & Dispatch": "Quality inspection & dispatch",
+        }
         for region in regions:
             if region.fault:
                 dot, state, cls = "●", "ATTENTION", "dot-alert"
@@ -473,62 +476,188 @@ def render_factory_identity(snap: Snapshot) -> None:
                 dot, state, cls = "●", "ACTIVE", "dot-active"
             else:
                 dot, state, cls = "●", "IDLE", "dot-idle"
-            st.markdown(f'''<div class="station-card"><div class="station-top"><div class="station-name">{region.label}</div><div class="station-state {cls}">{dot} {state}</div></div><div class="station-detail">{region.detail}</div></div>''', unsafe_allow_html=True)
+            label = cake_labels.get(region.label, region.label)
+            st.markdown(f'''<div class="station-card"><div class="station-top"><div class="station-name">{label}</div><div class="station-state {cls}">{dot} {state}</div></div><div class="station-detail">{region.detail}</div></div>''', unsafe_allow_html=True)
+
+
+def _recent_alerts(events: pd.DataFrame) -> pd.DataFrame:
+    if events is None or events.empty:
+        return pd.DataFrame()
+    out = events.copy()
+    if "timestamp" in out.columns:
+        out["timestamp"] = pd.to_datetime(out["timestamp"], utc=True, errors="coerce")
+    if "severity" in out.columns:
+        out = out[out["severity"].isin(["WARNING", "CRITICAL"])].copy()
+    return out.sort_values("timestamp") if "timestamp" in out.columns else out
+
+
+def render_operator(view: str, snap: Snapshot, process_state, clean: pd.DataFrame, cycles: pd.DataFrame, stages: pd.DataFrame, events: pd.DataFrame) -> None:
+    summary = kpi_summary(clean, cycles, stages, events)
+    colors = build_color_counts(clean)
+    render_identity_header(view, snap)
+    render_status_banner(snap, process_state)
+    render_kpis([
+        identity_kpi("Cakes completed", str(summary.get("cycles_completed", 0)), "HBW pickup → quality inspection"),
+        identity_kpi("Cycle time", fmt_seconds(summary.get("cycle_median_s")), "Median physical cake flow"),
+        identity_kpi("Vanilla", str(colors["Vanilla"]), "White cakes produced"),
+        identity_kpi("Strawberry", str(colors["Strawberry"]), "Red cakes produced"),
+        identity_kpi("Blueberry", str(colors["Blueberry"]), "Blueberry cakes produced"),
+    ])
+
+    # The operator is the only role that needs the live physical-line view and
+    # immediate critical/warning information in the same screen.
+    render_factory_identity(snap, compact=False)
+
+    if snap.emergency:
+        st.error("EMERGENCY STOP ACTIVE — dashboard is read-only. Follow the physical plant safety procedure.")
+    alerts = _recent_alerts(events)
+    if not alerts.empty:
+        st.markdown('<div class="section-title">What needs attention</div>', unsafe_allow_html=True)
+        for _, row in alerts.tail(4).iloc[::-1].iterrows():
+            ts = row.get("timestamp")
+            ts_text = ts.tz_convert("Europe/Berlin").strftime("%H:%M:%S") if pd.notna(ts) else "—"
+            st.markdown(f'''<div class="alert-card"><div class="alert-title">{row.get("severity", "WARNING")} · {row.get("code", "EVENT")} · {ts_text}</div><div class="alert-detail">{row.get("message", "Recorded event")}</div></div>''', unsafe_allow_html=True)
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown('<div class="chart-headline">Cake cycle timing</div><div class="section-note">HBW pickup → sorting-line entry · production cadence shown against the 55 s reference</div>', unsafe_allow_html=True)
+        st.plotly_chart(cycle_time_figure(cycles), use_container_width=True, config={"displayModeBar": False})
+    with c2:
+        st.markdown('<div class="chart-headline">Oven temperature stayed in the target window</div><div class="section-note">Simulated oven temperature · realistic cake-baking range 175–185 °C · not a physical temperature sensor</div>', unsafe_allow_html=True)
+        st.plotly_chart(simulated_temperature_figure(clean), use_container_width=True, config={"displayModeBar": False})
+
+
+def render_qa(view: str, snap: Snapshot, clean: pd.DataFrame, cycles: pd.DataFrame, stages: pd.DataFrame, events: pd.DataFrame) -> None:
+    summary = kpi_summary(clean, cycles, stages, events)
+    colors = build_color_counts(clean)
+    checks = int(summary.get("quality_checks", 0) or 0)
+    passes = int(summary.get("quality_passes", 0) or 0)
+    nok = max(checks - passes, 0)
+    render_identity_header(view, snap)
+    render_kpis([
+        identity_kpi("Vanilla cakes", str(colors["Vanilla"]), "White cakes produced"),
+        identity_kpi("Strawberry cakes", str(colors["Strawberry"]), "Red cakes produced"),
+        identity_kpi("Blueberry cakes", str(colors["Blueberry"]), "Blue cakes produced"),
+        identity_kpi("NOK cakes", str(nok), "Burn time outside 3–7 s", attention=nok > 0),
+    ])
+
+    left, right = st.columns([2, 3])
+    with left:
+        st.markdown('<div class="chart-headline">Cakes produced by flavour</div><div class="section-note">Finished cakes classified by the sorting-line destination: white = vanilla, red = strawberry, blue = blueberry.</div>', unsafe_allow_html=True)
+        st.plotly_chart(cake_flavour_figure(colors), use_container_width=True, config={"displayModeBar": False})
+    with right:
+        st.markdown('<div class="chart-headline">Latest cakes checked</div><div class="section-note">Newest finished cakes · burn time is the available quality proxy.</div>', unsafe_allow_html=True)
+        burn_rows = stages[(stages.get("measurement") == "stage_elapsed") & (stages.get("stage") == "Baking")].copy() if not stages.empty else pd.DataFrame()
+        if not burn_rows.empty:
+            burn_rows = burn_rows.dropna(subset=["elapsed_s"]).sort_values("start", ascending=False).head(8).copy()
+            burn_rows["Time"] = pd.to_datetime(burn_rows["start"], utc=True, errors="coerce").dt.tz_convert("Europe/Berlin").dt.strftime("%H:%M:%S")
+            burn_rows["Cake"] = [f"CK-{int(x):04d}" for x in burn_rows["occurrence"]]
+            burn_rows["Bake (s)"] = burn_rows["elapsed_s"].round(1)
+            burn_rows["Result"] = burn_rows["elapsed_s"].apply(lambda x: "OK" if 3 <= x <= 7 else "NOK")
+            st.dataframe(burn_rows[["Time", "Cake", "Bake (s)", "Result"]], use_container_width=True, hide_index=True)
+        else:
+            st.info("No completed cake quality checks in this window.")
+
+    headline = f"{nok} cake{'s' if nok != 1 else ''} need quality review" if nok else f"All {checks} checked cakes stayed within the bake-time specification"
+    st.markdown(f'<div class="chart-headline">{headline}</div><div class="section-note">Observed baking time per cake · specification 3–7 s.</div>', unsafe_allow_html=True)
+    st.plotly_chart(qa_burn_figure(stages), use_container_width=True, config={"displayModeBar": False})
+
+
+def render_department(view: str, snap: Snapshot, clean: pd.DataFrame, cycles: pd.DataFrame, stages: pd.DataFrame, events: pd.DataFrame) -> None:
+    summary = kpi_summary(clean, cycles, stages, events)
+    availability, performance, quality, oee = _oee_values(summary)
+    complaints = case_study_complaints()
+    latest_month = list(complaints)[-1]
+    latest_complaints = complaints[latest_month]
+    render_identity_header(view, snap)
+    render_kpis([
+        identity_kpi("OEE", f"{oee*100:.0f} %", "Availability × performance × quality"),
+        identity_kpi("Availability", f"{availability*100:.0f} %", f"{summary.get('unplanned_stops', 0)} unplanned stops · {fmt_seconds(summary.get('stop_time_s'))}"),
+        identity_kpi("Quality", f"{quality*100:.0f} %", f"{summary.get('quality_passes', 0)} OK / {summary.get('quality_checks', 0)} cakes"),
+        identity_kpi(f"Complaints · {latest_month}", str(latest_complaints), "Manual case-study input"),
+    ])
+
+    left, right = st.columns(2)
+    with left:
+        st.markdown(f'<div class="chart-headline">{latest_month} complaints: {latest_complaints}</div><div class="section-note">Consumer complaints per month · manual case-study input.</div>', unsafe_allow_html=True)
+        st.plotly_chart(complaints_figure(), use_container_width=True, config={"displayModeBar": False})
+    with right:
+        weak = "Availability" if availability < .95 else "Performance" if performance < .95 else "Quality" if quality < .95 else None
+        if weak:
+            headline = f"OEE is {oee*100:.0f}% with {weak.lower()} below target"
+        else:
+            headline = f"OEE is {oee*100:.0f}% with no component loss"
+        st.markdown(f'<div class="chart-headline">{headline}</div><div class="section-note">Availability, performance and quality components · losses below 95% are highlighted.</div>', unsafe_allow_html=True)
+        st.plotly_chart(oee_components_figure(availability, performance, quality), use_container_width=True, config={"displayModeBar": False})
+
+
+def render_diagnostics(view: str, snap: Snapshot, process_state, clean: pd.DataFrame, cycles: pd.DataFrame, stages: pd.DataFrame, events: pd.DataFrame) -> None:
+    summary = kpi_summary(clean, cycles, stages, events)
+    render_identity_header(view, snap)
+    render_kpis([
+        identity_kpi("Signals received", str(len(snap.values)), "Current snapshot"),
+        identity_kpi("Good / bad", f"{snap.good_count} / {snap.bad_count}", "OPC UA value quality"),
+        identity_kpi("Sync spread", f"{snap.sync_spread_ms:.0f} ms" if snap.sync_spread_ms is not None else "—", "Source timestamp spread"),
+        identity_kpi("Current stage", process_state.phase, f"Elapsed {fmt_seconds(process_state.phase_elapsed_s)}"),
+    ])
+    render_factory_identity(snap, compact=True)
+
+    left, right = st.columns(2)
+    with left:
+        st.markdown('<div class="section-title">Observed stage durations</div><div class="section-note">Measured from signal transitions and source timestamps, not fixed simulation durations.</div>', unsafe_allow_html=True)
+        st.plotly_chart(stage_duration_figure(stages), use_container_width=True, config={"displayModeBar": False})
+    with right:
+        st.markdown('<div class="section-title">Station activity</div><div class="section-note">Share of observed session time with physical process outputs active.</div>', unsafe_allow_html=True)
+        st.plotly_chart(station_activity_figure(clean), use_container_width=True, config={"displayModeBar": False})
+
+    if events is not None and not events.empty:
+        st.markdown('<div class="section-title">Event timeline</div><div class="section-note">Process and system events recorded from the PLC/diagnostic engine.</div>', unsafe_allow_html=True)
+        st.plotly_chart(event_timeline_figure(events), use_container_width=True, config={"displayModeBar": False})
+
+    st.markdown('<div class="section-title">Current sensor and actuator values</div><div class="section-note">Raw values remain visible here for diagnostics; TRUE sensors are not automatically treated as machine activity.</div>', unsafe_allow_html=True)
+    descriptions = tag_descriptions()
+    current = pd.DataFrame([
+        {"Signal": key, "Value": value, "Status": snap.statuses.get(key, "derived"),
+         "Description": descriptions.get(key, "Simulation / derived value")}
+        for key, value in sorted(snap.values.items())
+    ])
+    st.dataframe(current, use_container_width=True, hide_index=True, height=420)
 
 
 def render_role_visual(view: str, snap, process_state, clean, cycles, stages, events):
-    summary = kpi_summary(clean, cycles, stages, events)
-    render_identity_header(view, snap)
-    render_status_banner(snap, process_state)
-    render_identity_kpis(view, summary, snap, process_state)
-    render_factory_identity(snap)
-
-    if view == "Operating Manager":
-        st.markdown('<div class="section-title">What needs attention</div>', unsafe_allow_html=True)
-        if events.empty:
-            st.markdown('<div class="station-card"><div class="station-name">No recorded events</div><div class="station-detail">No process or system events in the selected window.</div></div>', unsafe_allow_html=True)
-        else:
-            recent = events.tail(5).copy()
-            cols = [c for c in ["timestamp", "severity", "code", "message"] if c in recent.columns]
-            st.dataframe(recent[cols], use_container_width=True, hide_index=True)
-    elif view == "Line Manager":
-        st.markdown('<div class="section-title">Current process state</div>', unsafe_allow_html=True)
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Burning", "ON" if snap.bool("ms.process.burn") else "OFF")
-        c2.metric("Cycle", str(process_state.cycle) if process_state.cycle else "—")
-        history_df = get_replay_history().dataframe() if snap.source == SourceMode.REPLAY else get_live_history().dataframe()
-        c3.metric("Sorting colour", sorting_color(snap, history_df)[0])
+    if view == "Line Operator":
+        render_operator(view, snap, process_state, clean, cycles, stages, events)
+    elif view == "QA Manager":
+        render_qa(view, snap, clean, cycles, stages, events)
+    elif view == "Department Manager":
+        render_department(view, snap, clean, cycles, stages, events)
     else:
-        st.markdown('<div class="section-title">Operational summary</div>', unsafe_allow_html=True)
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Current stage", process_state.phase)
-        c2.metric("Active regions", f"{sum(r.active for r in region_statuses(snap))}/5")
-        c3.metric("Data source", snap.source.value)
-
-    st.markdown('<div class="identity-footer">Visual identity only in this version. Analytical charts and plots are intentionally deferred.</div>', unsafe_allow_html=True)
+        render_diagnostics(view, snap, process_state, clean, cycles, stages, events)
+    st.markdown('<div class="identity-footer">Cake-factory presentation layer. Plant signals remain read-only; oven temperature is the only simulated signal.</div>', unsafe_allow_html=True)
 
 
 # ------------------------------ main ---------------------------------------
 inject_visual_identity()
 
 with st.sidebar:
-    st.header("Dashboard")
-    view = st.radio("Audience", ["Operating Manager", "Line Manager", "General Management"], index=0)
+    st.markdown("## Smart Cake Factory")
+    view = st.radio("View as", ["Line Operator", "QA Manager", "Department Manager", "Factory Diagnostics"], index=0)
     st.divider()
-    st.header("Data source")
+    st.markdown("### Data source")
     modes = ["Auto", SourceMode.LIVE.value, SourceMode.SIMULATION.value, SourceMode.REPLAY.value]
     mode = st.radio("Mode", modes, index=0)
     reset_history_if_source_changed(mode)
-    st.caption(f"OPC UA: `{SETTINGS.opcua_url}` · namespace `{SETTINGS.opcua_namespace}`")
-    refresh = st.slider("Dashboard refresh (ms)", 500, 5000, SETTINGS.refresh_ms, 250)
+    st.caption(f"OPC UA: `{SETTINGS.opcua_url}`")
+    refresh = st.slider("Refresh (ms)", 500, 5000, SETTINGS.refresh_ms, 250)
 
     sessions = session_dirs()
     selected_session = None
-    if view in {"Line Manager", "General Management"} and sessions:
+    if view in {"Department Manager", "Factory Diagnostics"} and sessions and mode != SourceMode.REPLAY.value:
         labels = [session_label(p) for p in sessions[:20]]
         selected_label = st.selectbox("Recorded session", ["Current live window"] + labels)
         if selected_label != "Current live window":
             selected_session = sessions[labels.index(selected_label)]
+
     if mode == SourceMode.SIMULATION.value:
         sim = get_sim()
         c1, c2 = st.columns(2)
@@ -537,7 +666,7 @@ with st.sidebar:
         if c2.button("Reset", use_container_width=True):
             sim.reset(); st.rerun()
     elif mode == SourceMode.REPLAY.value:
-        st.subheader("Replay navigator")
+        st.markdown("### Replay")
         if not sessions:
             st.warning("No recorded sessions found.")
         else:
@@ -551,12 +680,8 @@ with st.sidebar:
                 st.session_state.replay_playing = False
                 st.session_state.replay_speed = 1
                 st.session_state.replay_source = ReplayDataSource(replay_path)
-                # A replay session is an independent timeline. Never mix its
-                # history/events with the previous live or replay session.
                 st.session_state.replay_history = History(max_rows=max(1200, SETTINGS.history_seconds * 4))
-                st.session_state.event_engine = EventEngine(
-                    SETTINGS.process_watchdog_seconds, SETTINGS.opcua_sync_warning_ms
-                )
+                st.session_state.event_engine = EventEngine(SETTINGS.process_watchdog_seconds, SETTINGS.opcua_sync_warning_ms)
                 st.session_state.events = []
                 st.session_state.replay_focus_incident = None
 
@@ -564,70 +689,52 @@ with st.sidebar:
             incidents = incident_records(replay_path.parent)
             if incidents:
                 incident_labels = [
-                    f"{r['timestamp'].strftime('%H:%M:%S UTC') if not pd.isna(r['timestamp']) else 'unknown'} · {r['severity']} · {r['code']} · {r['message']}"
+                    f"{r['timestamp'].strftime('%H:%M:%S UTC') if not pd.isna(r['timestamp']) else 'unknown'} · {r['severity']} · {r['code']}"
                     for r in incidents
                 ]
                 incident_choice = st.selectbox("Recorded incident", ["No incident / choose timestamp"] + incident_labels, key="replay_incident_select")
                 if incident_choice != "No incident / choose timestamp":
                     chosen = incidents[incident_labels.index(incident_choice)]
-                    if st.button("▶ Replay this incident", use_container_width=True):
-                        if not pd.isna(chosen["timestamp"]):
-                            pre_seconds = 60.0
-                            meta_path = chosen["path"] / "metadata.json"
-                            if meta_path.exists():
-                                try:
-                                    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-                                    pre_seconds = float(meta.get("pre_seconds", pre_seconds))
-                                except (OSError, ValueError, TypeError, json.JSONDecodeError):
-                                    pass
-                            event_time = chosen["timestamp"].to_pydatetime()
-                            seek_replay_to_timestamp(replay_path, event_time - pd.Timedelta(seconds=pre_seconds))
-                            st.session_state.replay_focus_incident = chosen["id"]
-                            st.session_state.replay_playing = True
-                            st.session_state.replay_history = History(max_rows=max(1200, SETTINGS.history_seconds * 4))
-                            st.session_state.event_engine = EventEngine(
-                                SETTINGS.process_watchdog_seconds, SETTINGS.opcua_sync_warning_ms
-                            )
-                            st.session_state.events = []
-                            st.rerun()
-            else:
-                st.caption("No recorded incidents in this session.")
+                    if st.button("▶ Replay this incident", use_container_width=True) and not pd.isna(chosen["timestamp"]):
+                        pre_seconds = 60.0
+                        meta_path = chosen["path"] / "metadata.json"
+                        if meta_path.exists():
+                            try:
+                                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                                pre_seconds = float(meta.get("pre_seconds", pre_seconds))
+                            except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                                pass
+                        seek_replay_to_timestamp(replay_path, chosen["timestamp"].to_pydatetime() - pd.Timedelta(seconds=pre_seconds))
+                        st.session_state.replay_focus_incident = chosen["id"]
+                        st.session_state.replay_playing = True
+                        st.session_state.replay_history = History(max_rows=max(1200, SETTINGS.history_seconds * 4))
+                        st.session_state.event_engine = EventEngine(SETTINGS.process_watchdog_seconds, SETTINGS.opcua_sync_warning_ms)
+                        st.session_state.events = []
+                        st.rerun()
 
-            start_dt = replay.start_timestamp
-            end_dt = replay.end_timestamp
+            start_dt, end_dt = replay.start_timestamp, replay.end_timestamp
             if start_dt and end_dt:
-                default_date = start_dt.date()
-                target_date = st.date_input("Replay date (UTC)", value=default_date, key="replay_date")
-                target_time = st.time_input("Jump to time (UTC)", value=start_dt.time().replace(microsecond=0), key="replay_time")
+                target_date = st.date_input("Jump date (UTC)", value=start_dt.date(), key="replay_date")
+                target_time = st.time_input("Jump time (UTC)", value=start_dt.time().replace(microsecond=0), key="replay_time")
                 if st.button("Jump to timestamp", use_container_width=True):
-                    target = datetime.combine(target_date, target_time, tzinfo=timezone.utc)
-                    seek_replay_to_timestamp(replay_path, target)
+                    seek_replay_to_timestamp(replay_path, datetime.combine(target_date, target_time, tzinfo=timezone.utc))
                     st.rerun()
-
-                st.caption(f"Available: {start_dt.strftime('%Y-%m-%d %H:%M:%S')} → {end_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC")
-
+                st.caption(f"Available: {start_dt:%Y-%m-%d %H:%M:%S} → {end_dt:%Y-%m-%d %H:%M:%S} UTC")
             c1, c2 = st.columns(2)
             if c1.button("⏮ Start", use_container_width=True):
                 replay.reset(); st.session_state.replay_playing = False; st.rerun()
             if c2.button("↺ Restart", use_container_width=True):
                 replay.reset(); st.session_state.replay_playing = False; st.rerun()
-
-            speeds = [1, 2, 5, 10, 25]
-            speed = st.select_slider("Replay speed", options=speeds, value=st.session_state.get("replay_speed", 1), format_func=lambda x: f"{x}×", key="replay_speed")
+            st.select_slider("Replay speed", options=[1, 2, 5, 10, 25], value=st.session_state.get("replay_speed", 1), format_func=lambda x: f"{x}×", key="replay_speed")
             if st.button("⏯ Play / Pause", use_container_width=True):
                 st.session_state.replay_playing = not st.session_state.get("replay_playing", False)
                 st.rerun()
             if replay.current_timestamp:
-                st.caption(f"Position: {replay.current_timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]} UTC · row {min(replay.position, replay.total_rows)}/{replay.total_rows}")
+                st.caption(f"Position: {replay.current_timestamp:%Y-%m-%d %H:%M:%S.%f}"[:-3] + " UTC")
 
-# Replay navigation is independent from live acquisition. The OPC UA reader
-# keeps polling in its own worker regardless of the selected dashboard source.
 st_autorefresh(interval=refresh, key="dashboard_refresh")
 
-# ---- Background live pipeline ------------------------------------------------
-# Always drain the live reader buffer. This is intentionally independent of the
-# currently displayed source, so reviewing a recording never stops acquisition,
-# recording, incident detection, or live state capture.
+# Background live acquisition/recording is deliberately independent of the selected view/source.
 reader = get_reader()
 recorder = get_recorder()
 live_engine = get_live_event_engine()
@@ -650,18 +757,13 @@ if unread:
         if item.snapshot_id is not None:
             st.session_state.last_processed_live_id = item.snapshot_id
 
-# ---- Display pipeline --------------------------------------------------------
-# This pipeline is disposable: changing views or switching between replay/live
-# never touches the background live pipeline above.
+# Display pipeline. Replay/live/simulation can be changed without touching the recorder.
 if mode == SourceMode.REPLAY.value:
     replay = replay_source()
     if replay is None:
         snap = get_sim().snapshot()
     else:
-        if st.session_state.get("replay_playing"):
-            batch = replay.snapshots_batch(st.session_state.get("replay_speed", 1))
-        else:
-            batch = [replay.snapshot()]
+        batch = replay.snapshots_batch(st.session_state.get("replay_speed", 1)) if st.session_state.get("replay_playing") else [replay.snapshot()]
         replay_engine = get_event_engine()
         replay_history = get_replay_history()
         replay_events = st.session_state.setdefault("events", [])
@@ -678,8 +780,6 @@ elif mode == SourceMode.SIMULATION.value:
     st.session_state.setdefault("events", []).extend(events_now)
     st.session_state.events = st.session_state.events[-500:]
 else:
-    # Auto and Live both display the latest live state. The background pipeline
-    # above has already persisted every unread live snapshot.
     snap = reader.snapshot()
     st.session_state.history = get_live_history()
     st.session_state.event_engine = live_engine
@@ -688,78 +788,35 @@ else:
 event_engine = get_event_engine()
 process_state = event_engine.process_state
 
-if mode == SourceMode.REPLAY.value:
-    replay = replay_source()
-    if replay is not None:
-        focused = st.session_state.get("replay_focus_incident")
-        if focused:
-            focus_rows = [r for r in incident_records(Path(st.session_state["replay_selected_path"]).parent) if r["id"] == focused]
-            if focus_rows and not pd.isna(focus_rows[0]["timestamp"]):
-                focus = focus_rows[0]
-                current_ts = pd.Timestamp(snap.source_timestamp_reference or snap.timestamp)
-                event_ts = focus["timestamp"]
-                delta = (current_ts - event_ts).total_seconds()
-                st.info(
-                    f"🎬 Replay incident **{focus['code']}** · {focus['severity']} · "
-                    f"{focus['message']} · event {event_ts.strftime('%H:%M:%S UTC')} · "
-                    f"position {delta:+.1f}s from event"
-                )
-status_label = "EMERGENCY" if snap.emergency else "STALE" if snap.health == Health.STALE else "CONNECTED" if snap.connected else "OFFLINE"
-phase = process_state.phase if snap.source != SourceMode.SIMULATION else process_phase(snap)
-cols = st.columns(5)
-cols[0].metric("Connection", status_label)
-cols[1].metric("Current stage", phase)
-cols[2].metric("Burning", "ON" if snap.bool("ms.process.burn") else "OFF")
-cols[3].metric("Stage elapsed", fmt_seconds(process_state.phase_elapsed_s))
-cols[4].metric("Cycle", process_state.cycle if process_state.cycle else "—")
+if mode == SourceMode.REPLAY.value and st.session_state.get("replay_focus_incident"):
+    selected = st.session_state.get("replay_selected_path")
+    if selected:
+        focus_rows = [r for r in incident_records(Path(selected).parent) if r["id"] == st.session_state["replay_focus_incident"]]
+        if focus_rows and not pd.isna(focus_rows[0]["timestamp"]):
+            event_ts = focus_rows[0]["timestamp"]
+            current_ts = pd.Timestamp(snap.source_timestamp_reference or snap.timestamp)
+            st.info(f"🎬 Replay incident **{focus_rows[0]['code']}** · {focus_rows[0]['severity']} · {focus_rows[0]['message']} · event {event_ts.strftime('%H:%M:%S UTC')} · position {(current_ts-event_ts).total_seconds():+.1f}s")
 
 if mode == SourceMode.REPLAY.value:
     history_df = get_replay_history().dataframe()
-    analysis_session = (Path(st.session_state["replay_selected_path"]).parent
-                        if st.session_state.get("replay_selected_path") else None)
+    analysis_session = None
 elif mode == SourceMode.SIMULATION.value:
     history_df = get_history().dataframe()
-    analysis_session = selected_session if selected_session is not None else None
+    analysis_session = selected_session
 else:
     history_df = get_live_history().dataframe()
-    analysis_session = selected_session if selected_session is not None else None
+    analysis_session = selected_session
+
 clean, cycles, stages, events_df = analysis_data(snap, history_df, analysis_session)
 
-# During replay, make the recorded event log visible instead of hiding it behind
-# the newly reconstructed event engine. The engine still runs to reconstruct
-# process state and region activity frame-by-frame.
-if mode == SourceMode.REPLAY.value and analysis_session is not None:
-    recorded_events = load_events(analysis_session)
-    if not recorded_events.empty:
+if mode == SourceMode.REPLAY.value and st.session_state.get("replay_selected_path"):
+    recorded_events = load_events(Path(st.session_state["replay_selected_path"]).parent)
+    current_ts = pd.Timestamp(snap.source_timestamp_reference or snap.timestamp)
+    if not recorded_events.empty and "timestamp" in recorded_events.columns:
+        recorded_events = recorded_events[recorded_events["timestamp"] <= current_ts].copy()
         events_df = recorded_events
 
 render_role_visual(view, snap, process_state, clean, cycles, stages, events_df)
-
-with st.expander("Current factory diagnostics", expanded=False):
-    c1, c2 = st.columns(2)
-    with c1:
-        st.write("**Emergency source:**", emergency_source(snap))
-        color_value = snap.get("sl.sensor.color_value")
-        color_name, color_source = sorting_color(snap, history_df)
-        st.write("**Color:**", f"{color_name} · {color_source} (raw value {color_value})")
-        if color_name == "Unknown" and color_source == "unclassified sensor value":
-            st.caption("The raw color value is not in the calibrated PLC range; it is not assumed to be Blue.")
-        coords = (snap.get("local.crane_coord_h"), snap.get("local.crane_coord_v"), snap.get("local.crane_coord_r"))
-        if all(v is not None for v in coords):
-            st.write("**Crane H / V / R:**", f"{coords[0]} / {coords[1]} / {coords[2]}")
-    with c2:
-        st.write(f"**Values received:** {len(snap.values)}")
-        st.write(f"**Good / Bad:** {snap.good_count} / {snap.bad_count}")
-        st.write(f"**Source:** {snap.message}")
-
-with st.expander("Raw variable table", expanded=False):
-    descriptions = tag_descriptions()
-    current = pd.DataFrame([
-        {"Tag": key, "Value": value, "Status": snap.statuses.get(key, "derived"),
-         "Description": descriptions.get(key, "Simulation / derived value")}
-        for key, value in sorted(snap.values.items())
-    ])
-    st.dataframe(current, use_container_width=True, hide_index=True)
 
 if recorder.active:
     st.caption(f"Recording live session: `{recorder.session_dir.name}` · raw telemetry + cleaned analytics + events")

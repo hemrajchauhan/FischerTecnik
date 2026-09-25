@@ -13,22 +13,22 @@ from .tags import sensor_active_edges
 # clocked from its own signal transitions and the durations are measured from
 # the recorded timestamps.
 REFERENCE_PHASES: tuple[tuple[str, float], ...] = (
-    ("Burning", 5.0),
-    ("Oven release", 2.0),
-    ("Transfer from oven", 9.0),
-    ("Transfer to turntable", 11.0),
-    ("Sawing", 4.0),
-    ("Move to sorting", 6.0),
-    ("Sorting", 7.0),
+    ("Baking", 5.0),
+    ("Oven unloading", 2.0),
+    ("Unload from oven", 9.0),
+    ("Position for finishing", 11.0),
+    ("Cake finishing", 4.0),
+    ("Move to quality inspection", 6.0),
+    ("Colour sorting & dispatch", 7.0),
 )
 REFERENCE_CYCLE_SECONDS = sum(duration for _, duration in REFERENCE_PHASES)
 
 # PLC iMS_Step is useful as an informational value only. The factory is
 # pipelined, so it must never be used as a global activity gate.
 PLC_STEP_NAMES = {
-    0: "Burning / oven sequence",
+    0: "Baking / oven sequence",
     1: "Delivery",
-    2: "Sawing / downstream",
+    2: "Cake finishing / downstream",
 }
 
 PROCESS_OUTPUTS = {
@@ -74,43 +74,43 @@ PROCESS_SENSORS = {
 }
 
 SENSOR_ALLOWED_PHASES = {
-    "oven": {"Burning", "Oven release", "Transfer from oven", "Transfer to turntable", "Sawing", "Move to sorting", "Sorting", "Next material preparation"},
-    "ms_conveyor": {"Move to sorting", "Sorting"},
-    "sorting_before_color": {"Move to sorting", "Sorting"},
-    "sorting_after_color": {"Move to sorting", "Sorting"},
+    "oven": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality inspection", "Colour sorting & dispatch", "Prepare next cake"},
+    "ms_conveyor": {"Move to quality inspection", "Colour sorting & dispatch"},
+    "sorting_before_color": {"Move to quality inspection", "Colour sorting & dispatch"},
+    "sorting_after_color": {"Move to quality inspection", "Colour sorting & dispatch"},
     # Storage light barriers report persistent occupancy and are independent
     # of the currently processed workpiece. A stored red/blue/white piece can
     # legitimately remain present while MS/HBW are processing another piece.
-    "white_storage": {"Burning", "Oven release", "Transfer from oven", "Transfer to turntable", "Sawing", "Move to sorting", "Sorting", "Next material preparation"},
-    "red_storage": {"Burning", "Oven release", "Transfer from oven", "Transfer to turntable", "Sawing", "Move to sorting", "Sorting", "Next material preparation"},
-    "blue_storage": {"Burning", "Oven release", "Transfer from oven", "Transfer to turntable", "Sawing", "Move to sorting", "Sorting", "Next material preparation"},
+    "white_storage": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality inspection", "Colour sorting & dispatch", "Prepare next cake"},
+    "red_storage": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality inspection", "Colour sorting & dispatch", "Prepare next cake"},
+    "blue_storage": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality inspection", "Colour sorting & dispatch", "Prepare next cake"},
     "pm_entry": set(),
     "pm_tool": set(),
     # HBW is pipelined and may legitimately move during any MS phase.
-    "hbw_inside": {"Burning", "Oven release", "Transfer from oven", "Transfer to turntable", "Sawing", "Move to sorting", "Sorting", "Next material preparation"},
-    "hbw_outside": {"Burning", "Oven release", "Transfer from oven", "Transfer to turntable", "Sawing", "Move to sorting", "Sorting", "Next material preparation"},
+    "hbw_inside": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality inspection", "Colour sorting & dispatch", "Prepare next cake"},
+    "hbw_outside": {"Baking", "Oven unloading", "Unload from oven", "Position for finishing", "Cake finishing", "Move to quality inspection", "Colour sorting & dispatch", "Prepare next cake"},
 }
 
 # Only outputs for which a wrong phase is meaningful are checked. HBW/C are
 # intentionally omitted because they run concurrently with the MS process.
 ACTUATOR_ALLOWED_PHASES = {
-    "ms.process.burn": {"Burning"},
-    "ms.motor.slider_in": {"Burning", "Oven release", "Sorting", "Next material preparation"},
-    "ms.motor.slider_out": {"Oven release", "Sorting", "Next material preparation"},
-    "ms.motor.transfer_oven": {"Transfer from oven"},
-    "ms.motor.transfer_turntable": {"Transfer to turntable", "Sawing"},
-    "ms.motor.turntable_cw": {"Transfer to turntable", "Sawing"},
-    "ms.motor.turntable_ccw": {"Move to sorting", "Sorting"},
-    "ms.motor.saw": {"Sawing"},
-    "ms.motor.conveyor": {"Move to sorting", "Sorting"},
-    "ms.valve.oven_door": {"Oven release", "Sorting", "Next material preparation"},
-    "ms.valve.transfer": {"Transfer from oven", "Transfer to turntable", "Sawing"},
-    "ms.valve.vacuum": {"Transfer from oven", "Transfer to turntable", "Sawing"},
-    "ms.valve.ejector": {"Sawing", "Move to sorting"},
-    "sl.motor.conveyor": {"Move to sorting", "Sorting"},
-    "sl.valve.white": {"Sorting"},
-    "sl.valve.red": {"Sorting"},
-    "sl.valve.blue": {"Sorting"},
+    "ms.process.burn": {"Baking"},
+    "ms.motor.slider_in": {"Baking", "Oven unloading", "Colour sorting & dispatch", "Prepare next cake"},
+    "ms.motor.slider_out": {"Oven unloading", "Colour sorting & dispatch", "Prepare next cake"},
+    "ms.motor.transfer_oven": {"Unload from oven"},
+    "ms.motor.transfer_turntable": {"Position for finishing", "Cake finishing"},
+    "ms.motor.turntable_cw": {"Position for finishing", "Cake finishing"},
+    "ms.motor.turntable_ccw": {"Move to quality inspection", "Colour sorting & dispatch"},
+    "ms.motor.saw": {"Cake finishing"},
+    "ms.motor.conveyor": {"Move to quality inspection", "Colour sorting & dispatch"},
+    "ms.valve.oven_door": {"Oven unloading", "Colour sorting & dispatch", "Prepare next cake"},
+    "ms.valve.transfer": {"Unload from oven", "Position for finishing", "Cake finishing"},
+    "ms.valve.vacuum": {"Unload from oven", "Position for finishing", "Cake finishing"},
+    "ms.valve.ejector": {"Cake finishing", "Move to quality inspection"},
+    "sl.motor.conveyor": {"Move to quality inspection", "Colour sorting & dispatch"},
+    "sl.valve.white": {"Colour sorting & dispatch"},
+    "sl.valve.red": {"Colour sorting & dispatch"},
+    "sl.valve.blue": {"Colour sorting & dispatch"},
     "pm.motor.conveyor_forward": set(),
     "pm.motor.conveyor_backward": set(),
     "pm.motor.tool_up": set(),
@@ -190,19 +190,19 @@ def phase_from_elapsed(elapsed_s: float) -> tuple[int, str, float, float]:
 def infer_process_phase(values: dict[str, Any]) -> ExpectedProcess:
     plc_step = _as_int(values.get("local.ms_step"))
     if bool(values.get("ms.process.burn", False)):
-        return ExpectedProcess(0, "Burning", frozenset(PROCESS_OUTPUTS["ms"]), "signal", plc_step)
+        return ExpectedProcess(0, "Baking", frozenset(PROCESS_OUTPUTS["ms"]), "signal", plc_step)
     if bool(values.get("ms.motor.slider_out", False)) or bool(values.get("ms.valve.oven_door", False)):
-        return ExpectedProcess(1, "Oven release", frozenset(PROCESS_OUTPUTS["ms"]), "signal", plc_step)
+        return ExpectedProcess(1, "Oven unloading", frozenset(PROCESS_OUTPUTS["ms"]), "signal", plc_step)
     if bool(values.get("ms.motor.transfer_oven", False)):
-        return ExpectedProcess(2, "Transfer from oven", frozenset(PROCESS_OUTPUTS["ms"]), "signal", plc_step)
+        return ExpectedProcess(2, "Unload from oven", frozenset(PROCESS_OUTPUTS["ms"]), "signal", plc_step)
     if bool(values.get("ms.motor.transfer_turntable", False)):
-        return ExpectedProcess(3, "Transfer to turntable", frozenset(PROCESS_OUTPUTS["ms"]), "signal", plc_step)
+        return ExpectedProcess(3, "Position for finishing", frozenset(PROCESS_OUTPUTS["ms"]), "signal", plc_step)
     if bool(values.get("ms.motor.saw", False)) or bool(values.get("ms.motor.turntable_cw", False)):
-        return ExpectedProcess(4, "Sawing", frozenset(PROCESS_OUTPUTS["ms"]), "signal", plc_step)
+        return ExpectedProcess(4, "Cake finishing", frozenset(PROCESS_OUTPUTS["ms"]), "signal", plc_step)
     if bool(values.get("ms.motor.conveyor", False)) or bool(values.get("sl.motor.conveyor", False)):
-        return ExpectedProcess(5, "Move to sorting", frozenset(PROCESS_OUTPUTS["ms"] | PROCESS_OUTPUTS["sl"]), "signal", plc_step)
+        return ExpectedProcess(5, "Move to quality inspection", frozenset(PROCESS_OUTPUTS["ms"] | PROCESS_OUTPUTS["sl"]), "signal", plc_step)
     if any(bool(values.get(k, False)) for k in ("sl.valve.white", "sl.valve.red", "sl.valve.blue")):
-        return ExpectedProcess(6, "Sorting", frozenset(PROCESS_OUTPUTS["sl"]), "signal", plc_step)
+        return ExpectedProcess(6, "Colour sorting & dispatch", frozenset(PROCESS_OUTPUTS["sl"]), "signal", plc_step)
     return ExpectedProcess(None, "Idle / waiting", frozenset(), "inferred", plc_step)
 
 
@@ -245,14 +245,14 @@ class ProcessMonitor:
     """
 
     PHASES = (
-        "Burning",
-        "Oven release",
-        "Transfer from oven",
-        "Transfer to turntable",
-        "Sawing",
-        "Move to sorting",
-        "Sorting",
-        "Next material preparation",
+        "Baking",
+        "Oven unloading",
+        "Unload from oven",
+        "Position for finishing",
+        "Cake finishing",
+        "Move to quality inspection",
+        "Colour sorting & dispatch",
+        "Prepare next cake",
     )
 
     def __init__(self) -> None:

@@ -57,19 +57,19 @@ REGION_UTILITY_SIGNALS: dict[str, tuple[str, ...]] = {
 }
 
 REGION_LABELS = {
-    "hbw": "High Bay Warehouse",
-    "crane": "Vacuum Gripper Crane",
-    "ms": "Multi Processing Station",
-    "pm": "Punching Machine",
-    "sl": "Sorting Line",
+    "hbw": "Ingredient & Tray Storage",
+    "crane": "Cake Handling Crane",
+    "ms": "Baking Oven & Processing",
+    "pm": "Decoration / Finishing",
+    "sl": "Quality Inspection & Dispatch",
 }
 
 REGION_DETAILS = {
-    "hbw": "Stacker crane / warehouse conveyor",
-    "crane": "Vacuum gripper handling robot",
-    "ms": "Oven, transfer unit, turntable and saw",
-    "pm": "Punching station",
-    "sl": "Conveyor, colour detection and sorting cylinders",
+    "hbw": "Ingredient and tray storage with automated retrieval",
+    "crane": "Vacuum gripper for cake/tray handling",
+    "ms": "Baking oven, transfer and cake-finishing mechanics",
+    "pm": "Decoration and finishing station",
+    "sl": "Quality inspection, colour detection and flavour dispatch",
 }
 
 

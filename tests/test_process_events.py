@@ -19,7 +19,7 @@ def make(values, timestamp=None, **kwargs):
 
 def test_reference_is_physical_phase_not_global_plc_step():
     ref = expected_process({"local.ms_step": 0, "ms.process.burn": True})
-    assert ref.name == "Burning"
+    assert ref.name == "Baking"
     assert ref.plc_step == 0
 
 
@@ -150,7 +150,7 @@ def test_all_light_barriers_are_active_low_from_plc_logic():
 
 def test_storage_occupancy_is_not_unexpected_during_other_pipeline_phases():
     from factory_dashboard.process_model import ProcessState, process_deviations
-    state = ProcessState(cycle=2, phase_index=4, phase="Sawing", cycle_anchor=datetime(2026, 1, 1, tzinfo=timezone.utc))
+    state = ProcessState(cycle=2, phase_index=4, phase="Cake finishing", cycle_anchor=datetime(2026, 1, 1, tzinfo=timezone.utc))
     deviations = process_deviations(
         {"sl.sensor.red": False},  # active-low: a stored red piece is present
         state=state,
@@ -169,7 +169,7 @@ def test_bad_process_signal_does_not_create_false_edge():
         {**base, "ms.process.burn": False}, t0 + timedelta(seconds=2),
         statuses={"ms.process.burn": "Bad: timeout", "c.valve.vacuum": "Good", "hbw.sensor.outside": "Good", "sl.sensor.before_color": "Good"},
     )
-    assert state.phase == "Burning"
+    assert state.phase == "Baking"
 
 
 def test_source_timestamp_spread_is_diagnostic_not_operator_warning():

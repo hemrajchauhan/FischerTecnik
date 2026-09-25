@@ -108,15 +108,20 @@ The project includes tests for:
 - verified OPC UA node registry
 - region activity and MS process phase interpretation
 
-## Management views and process analytics
+## Cake-factory dashboard views
 
-The dashboard now has three audience views:
+The presentation layer has four focused views:
 
-- **Operating Manager**: live factory virtualisation, current stage and elapsed time, recent stage operations, cycle trend, process signals and events.
-- **Line Manager**: cycle-time variability, stage-duration distributions, station active-time share, event timeline, stage performance table and crane position trends.
-- **General Management**: executive KPIs, throughput, cycle stability, bottleneck indication, station activity and recent exceptions.
+- **Line Operator — Oven & line cockpit**: live status, emergency/critical/warning attention, cake cycle KPIs, cycle-cadence plot, simulated oven-temperature plot, and current process stage. This is the only operational view with prominent warning/critical handling and the virtual factory.
+- **QA Manager — Quality control room**: Vanilla/Strawberry/Blueberry production counts, NOK cakes, September complaints, latest cake table, and burn-time quality plot.
+- **Department Manager — Cake production overview**: OEE, availability, quality, complaints trend, and OEE component plot. No plant diagnostics or alarm detail is exposed here.
+- **Factory Diagnostics — Virtualisation & signal diagnostics**: full virtual factory, station states, observed stage-duration distributions, station activity, event timeline, and current sensor/actuator values. This is the technical inspection view rather than a management view.
 
-### Timing model
+The presentation is intentionally framed as a **Smart Cake Factory**: HBW is ingredient/tray storage, the crane is cake handling, the MS station is the baking oven and processing area, PM is decoration/finishing, and SL is quality inspection and dispatch. The physical Fischertechnik image remains the visual plant model.
+
+All plots are Plotly 2-D visuals using the TUM-style palette from `DASHBOARD_SPEC_1.md`: TUM blue for primary process data, light blue for supporting data, orange with hatching for anomalies, green only for the case-study complaint reduction, and no red/green combination.
+
+## Timing model
 
 Live/replay timing is measured from telemetry transitions rather than a fixed reference duration. In particular, **Burning is the exact interval while `ms.process.burn` / `gvl_MS.bLamp_MS` is TRUE**. Other operations use their real actuator ON/OFF timestamps. For process windows where waiting can occur, the analytics keep both:
 

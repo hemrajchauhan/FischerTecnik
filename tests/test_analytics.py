@@ -45,7 +45,7 @@ def test_burning_duration_equals_lamp_on_window():
         {"ms.process.burn": False},
     ])
     stages = build_stage_metrics(clean_telemetry(df))
-    burning = stages[(stages["stage"] == "Burning") & (stages["measurement"] == "actuator_on")]
+    burning = stages[(stages["stage"] == "Baking") & (stages["measurement"] == "actuator_on")]
     assert len(burning) == 1
     assert burning.iloc[0]["elapsed_s"] == 2
     assert burning.iloc[0]["actuator_on_s"] == 2
@@ -60,7 +60,7 @@ def test_signal_duration_uses_signal_source_timestamps_when_available():
         {"snapshot_id": 4, "timestamp": base + timedelta(seconds=3), "ms.process.burn": False, "ms.process.burn.source_ts": base + timedelta(seconds=3.4)},
     ])
     stages = build_stage_metrics(clean_telemetry(df))
-    burning = stages[(stages["stage"] == "Burning") & (stages["measurement"] == "actuator_on")]
+    burning = stages[(stages["stage"] == "Baking") & (stages["measurement"] == "actuator_on")]
     assert len(burning) == 1
     assert burning.iloc[0]["elapsed_s"] == 2.2
 

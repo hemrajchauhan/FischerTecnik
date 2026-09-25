@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import math
 from typing import Any
 
 from .logic import color_class
@@ -51,6 +52,9 @@ class FactorySimulation:
         color_value, color_name = self.COLORS[zero_based_cycle % len(self.COLORS)]
         values = self._base_values()
         self._apply_phase(values, phase_index, color_value, color_name)
+        # Realistic dummy oven temperature for the cake-factory presentation.
+        # This is not a PLC sensor value.
+        oven_temperature = 180.0 + 2.2 * math.sin(elapsed / 21.0) + 0.9 * math.sin(elapsed / 6.5)
         values.update({
             "sim.phase": phase,
             "sim.phase_index": phase_index,
@@ -60,6 +64,7 @@ class FactorySimulation:
             "sim.cycle_elapsed_s": cycle_time,
             "sim.cycle_period_s": self.CYCLE_SECONDS,
             "sim.running": self.running,
+            "sim.oven_temperature_c": oven_temperature,
             "sl.sensor.color_value": color_value,
             "sim.color": color_name,
             # Keep PLC step as a simulated reported value only. It does not gate
@@ -112,39 +117,60 @@ class FactorySimulation:
             "pm.motor.conveyor_backward", "pm.motor.tool_up", "pm.motor.tool_down",
             "sl.motor.conveyor", "sl.air.compressor", "sl.valve.white", "sl.valve.red", "sl.valve.blue",
             "sl.sensor.white", "sl.sensor.red", "sl.sensor.blue", "ms.sensor.conveyor", "ms.sensor.oven",
-            "sl.sensor.before_color", "sl.sensor.after_color",
+            "sl.sensor.before_color", "sl.sensor.after_color", "hbw.sensor.outside",
         ]
-        return {key: False for key in keys}
+        values = {key: False for key in keys}
+        # Verified active-low light barriers: TRUE = clear, FALSE = workpiece present.
+        values["hbw.sensor.outside"] = True
+        values["sl.sensor.before_color"] = True
+        values["sl.sensor.after_color"] = True
+        return values
 
     @staticmethod
     def _apply_phase(values: dict[str, Any], phase: int, color_value: int, color_name: str) -> None:
         # The cycle is anchored at burning. HBW/C work is deliberately placed in
         # the final phase to demonstrate the real pipeline: the next workpiece
         # can be prepared while the current one is completing sorting.
-        if phase == 0:  # Burning
+        if phase == 0:  # Baking + start next cake from ingredient/tray storage
             values["ms.process.burn"] = True
+            values["hbw.sensor.outside"] = False
+            values["c.valve.vacuum"] = True
             values["ms.sensor.oven"] = True
-        elif phase == 1:  # Oven release
+        elif phase == 1:  # Oven unloading
+            values["c.valve.vacuum"] = False
+            values["hbw.sensor.outside"] = True
             values["ms.valve.oven_door"] = True
             values["ms.motor.slider_out"] = True
-        elif phase == 2:  # Transfer from oven
+        elif phase == 2:  # Unload from oven
+            values["c.valve.vacuum"] = False
+            values["hbw.sensor.outside"] = True
             values["ms.motor.transfer_oven"] = True
             values["ms.valve.transfer"] = True
             values["ms.valve.vacuum"] = True
-        elif phase == 3:  # Transfer to turntable
+        elif phase == 3:  # Position for finishing
+            values["c.valve.vacuum"] = False
+            values["hbw.sensor.outside"] = True
             values["ms.motor.transfer_turntable"] = True
             values["ms.valve.transfer"] = True
             values["ms.valve.vacuum"] = True
-        elif phase == 4:  # Sawing
+        elif phase == 4:  # Cake finishing
+            values["c.valve.vacuum"] = False
+            values["hbw.sensor.outside"] = True
             values["ms.motor.turntable_cw"] = True
             values["ms.motor.saw"] = True
-        elif phase == 5:  # Move to sorting / piece enters sorting line
+            values["pm.motor.tool_down"] = True
+            values["pm.motor.conveyor_forward"] = True
+        elif phase == 5:  # Move to quality inspection / piece enters inspection line
+            values["c.valve.vacuum"] = False
+            values["hbw.sensor.outside"] = True
             values["ms.motor.conveyor"] = True
             values["sl.motor.conveyor"] = True
             # Active-low light barrier: FALSE means the workpiece is present
             # at the sorting-line entry.
             values["sl.sensor.before_color"] = False
-        elif phase == 6:  # Sorting
+        elif phase == 6:  # Colour sorting & dispatch
+            values["c.valve.vacuum"] = False
+            values["hbw.sensor.outside"] = True
             values["sl.motor.conveyor"] = True
             values["sl.sensor.after_color"] = True
             values["sl.air.compressor"] = True
@@ -154,9 +180,9 @@ class FactorySimulation:
                 values["sl.valve.red"] = True
             else:
                 values["sl.valve.blue"] = True
-        elif phase == 7:  # Next material preparation / HBW pickup for next cycle
+        elif phase == 7:  # Prepare next cake
+            values["c.valve.vacuum"] = False
             values["hbw.sensor.outside"] = False
-            values["c.valve.vacuum"] = True
             values["hbw.motor.crane_conveyor"] = True
             values["hbw.motor.crane_down"] = True
             values["hbw.motor.cantilever_forward"] = True

@@ -24,5 +24,5 @@ def test_simulation_has_burning_phase_at_cycle_start():
     sim.offset = 0.5
     sim.running = False
     snap = sim.snapshot()
-    assert snap.get("sim.phase") == "Burning"
+    assert snap.get("sim.phase") == "Baking"
     assert snap.bool("ms.process.burn")

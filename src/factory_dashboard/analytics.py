@@ -29,12 +29,12 @@ STAGE_DEFINITIONS = (
     # These are phase windows matching ProcessMonitor/PLC transitions. They
     # measure the complete observed stage, including waits between actuator
     # operations.
-    {"stage": "Burning", "start": "rise:ms.process.burn", "end": "fall:ms.process.burn", "actuators": ("ms.process.burn",)},
-    {"stage": "Oven release", "start": "fall:ms.process.burn", "end": "rise:ms.motor.transfer_oven", "actuators": ("ms.valve.oven_door", "ms.motor.slider_out")},
-    {"stage": "Transfer from oven", "start": "rise:ms.motor.transfer_oven", "end": "rise:ms.motor.transfer_turntable", "actuators": ("ms.motor.transfer_oven", "ms.valve.transfer", "ms.valve.vacuum")},
-    {"stage": "Transfer to turntable", "start": "rise:ms.motor.transfer_turntable", "end": "rise:ms.motor.turntable_cw", "actuators": ("ms.motor.transfer_turntable", "ms.valve.transfer", "ms.valve.vacuum")},
-    {"stage": "Sawing", "start": "rise:ms.motor.turntable_cw", "end": "rise:ms.motor.conveyor", "actuators": ("ms.motor.turntable_cw", "ms.motor.saw", "ms.motor.ejector" if False else "ms.motor.turntable_cw")},
-    {"stage": "Move to sorting", "start": "rise:ms.motor.conveyor", "end": "fall:ms.motor.conveyor", "actuators": ("ms.motor.conveyor", "sl.motor.conveyor")},
+    {"stage": "Baking", "start": "rise:ms.process.burn", "end": "fall:ms.process.burn", "actuators": ("ms.process.burn",)},
+    {"stage": "Oven unloading", "start": "fall:ms.process.burn", "end": "rise:ms.motor.transfer_oven", "actuators": ("ms.valve.oven_door", "ms.motor.slider_out")},
+    {"stage": "Unload from oven", "start": "rise:ms.motor.transfer_oven", "end": "rise:ms.motor.transfer_turntable", "actuators": ("ms.motor.transfer_oven", "ms.valve.transfer", "ms.valve.vacuum")},
+    {"stage": "Position for finishing", "start": "rise:ms.motor.transfer_turntable", "end": "rise:ms.motor.turntable_cw", "actuators": ("ms.motor.transfer_turntable", "ms.valve.transfer", "ms.valve.vacuum")},
+    {"stage": "Cake finishing", "start": "rise:ms.motor.turntable_cw", "end": "rise:ms.motor.conveyor", "actuators": ("ms.motor.turntable_cw", "ms.motor.saw", "ms.motor.ejector" if False else "ms.motor.turntable_cw")},
+    {"stage": "Move to quality inspection", "start": "rise:ms.motor.conveyor", "end": "fall:ms.motor.conveyor", "actuators": ("ms.motor.conveyor", "sl.motor.conveyor")},
 )
 
 def _bool_series(series: pd.Series) -> pd.Series:
@@ -128,6 +128,14 @@ def clean_telemetry(df: pd.DataFrame) -> pd.DataFrame:
     out["sample_interval_s"] = out["timestamp"].diff().dt.total_seconds()
     out["sample_interval_s"] = out["sample_interval_s"].clip(lower=0)
     out["sample_rate_hz"] = np.where(out["sample_interval_s"] > 0, 1.0 / out["sample_interval_s"], np.nan)
+
+    # Derived cake-oven temperature for presentation only. The supplied PLC
+    # data has no physical temperature sensor, so this is intentionally kept
+    # under a `sim.` namespace and never overwrites raw telemetry.
+    t = (out["analysis_timestamp"] - out["analysis_timestamp"].iloc[0]).dt.total_seconds().fillna(0.0).to_numpy()
+    burn = _bool_series(out["ms.process.burn"]).to_numpy() if "ms.process.burn" in out.columns else np.zeros(len(out), dtype=bool)
+    door = _bool_series(out["ms.valve.oven_door"]).to_numpy() if "ms.valve.oven_door" in out.columns else np.zeros(len(out), dtype=bool)
+    out["sim.oven_temperature_c"] = 180.0 + 2.2*np.sin(t/21.0) + 0.9*np.sin(t/6.5) - 3.0*door + 0.8*burn
 
     # Region activity is explicitly based on physical outputs, not idle sensors.
     for region, signals in REGION_SIGNAL_MAP.items():
@@ -226,13 +234,13 @@ def build_stage_metrics(df: pd.DataFrame) -> pd.DataFrame:
     # Direct actuator pulse metrics first. These are the most trustworthy
     # measurements because they are directly tied to an output's ON/OFF edges.
     direct = [
-        ("Burning", "ms.process.burn"),
+        ("Baking", "ms.process.burn"),
         ("Oven door", "ms.valve.oven_door"),
-        ("Oven slider out", "ms.motor.slider_out"),
-        ("Transfer from oven", "ms.motor.transfer_oven"),
-        ("Transfer to turntable", "ms.motor.transfer_turntable"),
-        ("Turntable clockwise", "ms.motor.turntable_cw"),
-        ("Sawing", "ms.motor.saw"),
+        ("Oven unloading", "ms.motor.slider_out"),
+        ("Unload from oven", "ms.motor.transfer_oven"),
+        ("Position for finishing", "ms.motor.transfer_turntable"),
+        ("Finishing turntable", "ms.motor.turntable_cw"),
+        ("Cake finishing", "ms.motor.saw"),
         ("MS conveyor", "ms.motor.conveyor"),
         ("Sorting conveyor", "sl.motor.conveyor"),
         ("Sorting white", "sl.valve.white"),
@@ -283,7 +291,7 @@ def build_stage_metrics(df: pd.DataFrame) -> pd.DataFrame:
                 "complete": True,
             })
 
-    # Sorting is a PLC sub-process which continues after the MS conveyor stops
+    # Colour sorting is a PLC sub-process which continues after the MS conveyor stops
     # and may overlap the next MS preparation. Its observed phase therefore
     # ends at the next oven-preparation transition if present, otherwise at the
     # next burn edge.
@@ -298,9 +306,9 @@ def build_stage_metrics(df: pd.DataFrame) -> pd.DataFrame:
         end_time = min(candidates)
         rows.append({
             "measurement": "stage_elapsed",
-            "stage": "Sorting",
+            "stage": "Colour sorting & dispatch",
             "signal": "fall:ms.motor.conveyor -> next preparation/burn",
-            "occurrence": len([r for r in rows if r["measurement"] == "stage_elapsed" and r["stage"] == "Sorting"]) + 1,
+            "occurrence": len([r for r in rows if r["measurement"] == "stage_elapsed" and r["stage"] == "Colour sorting & dispatch"]) + 1,
             "cycle_context": nearest_burn(start_time),
             "start": start_time,
             "end": end_time,
@@ -377,6 +385,50 @@ def build_cycle_metrics(df: pd.DataFrame) -> pd.DataFrame:
 
     return pd.DataFrame(rows)
 
+
+def build_color_counts(df: pd.DataFrame) -> dict[str, int]:
+    """Count finished cakes by sorting destination.
+
+    The PLC's white/red/blue sorting valves are the strongest production
+    evidence because each destination valve is pulsed for the cake that has
+    just been classified. Counts are edge-based, so a valve that stays TRUE
+    for several samples is counted only once. When valve telemetry is absent,
+    the function falls back to the calibrated color sensor at the sorting line.
+    """
+    result = {"Vanilla": 0, "Strawberry": 0, "Blueberry": 0}
+    if df is None or df.empty:
+        return result
+
+    color_signals = (
+        ("sl.valve.white", "Vanilla"),
+        ("sl.valve.red", "Strawberry"),
+        ("sl.valve.blue", "Blueberry"),
+    )
+    valve_columns = [signal for signal, _ in color_signals if signal in df.columns]
+    if valve_columns:
+        ordered = df.sort_values("analysis_timestamp", kind="stable") if "analysis_timestamp" in df.columns else df
+        for signal, name in color_signals:
+            if signal not in ordered.columns:
+                continue
+            values = _bool_series(ordered[signal]).reset_index(drop=True)
+            if values.empty:
+                continue
+            rising = values & ~values.shift(1, fill_value=False)
+            result[name] = int(rising.sum())
+        if sum(result.values()) > 0:
+            return result
+
+    # Fallback for recordings that expose only the calibrated reflection value.
+    if "sl.sensor.color_value" in df.columns:
+        from .logic import color_class
+        values = pd.to_numeric(df["sl.sensor.color_value"], errors="coerce")
+        for value in values.dropna():
+            name = color_class(value)
+            mapped = {"White": "Vanilla", "Red": "Strawberry", "Blue": "Blueberry"}.get(name)
+            if mapped:
+                result[mapped] += 1
+    return result
+
 def kpi_summary(telemetry: pd.DataFrame, cycles: pd.DataFrame, stages: pd.DataFrame, events: pd.DataFrame | None = None) -> dict:
     clean = clean_telemetry(telemetry)
     summary: dict = {
@@ -386,17 +438,24 @@ def kpi_summary(telemetry: pd.DataFrame, cycles: pd.DataFrame, stages: pd.DataFr
     }
     if not cycles.empty:
         vals = cycles["cycle_time_s"].dropna()
+        pickup = cycles.get("pickup_interval_s", pd.Series(dtype=float)).dropna()
+        slow = pickup[pickup > 55.0 * 1.5] if not pickup.empty else pd.Series(dtype=float)
         summary.update({
             "cycle_avg_s": float(vals.mean()),
             "cycle_median_s": float(vals.median()),
             "cycle_min_s": float(vals.min()),
             "cycle_max_s": float(vals.max()),
             "cycle_std_s": float(vals.std(ddof=0)),
-            "throughput_per_hour": float(3600.0 / vals.median()) if vals.median() > 0 else 0.0,
-            "cycle_definition": "HBW pickup to sorting-line entry; pickup cadence shown separately",
+            "pickup_median_s": float(pickup.median()) if not pickup.empty else None,
+            "pickup_intervals_s": pickup.tolist(),
+            "unplanned_stops": int(len(slow)),
+            "stop_time_s": float((slow - 55.0).sum()) if not slow.empty else 0.0,
+            "throughput_per_hour": float(3600.0 / pickup.median()) if not pickup.empty and pickup.median() > 0 else (float(3600.0 / vals.median()) if vals.median() > 0 else 0.0),
+            "cycle_definition": "HBW pickup to sorting-line entry; pickup cadence is measured separately for throughput",
         })
     else:
-        summary.update({k: None for k in ("cycle_avg_s", "cycle_median_s", "cycle_min_s", "cycle_max_s", "cycle_std_s", "throughput_per_hour")})
+        summary.update({k: None for k in ("cycle_avg_s", "cycle_median_s", "cycle_min_s", "cycle_max_s", "cycle_std_s", "pickup_median_s", "throughput_per_hour")})
+        summary.update({"pickup_intervals_s": [], "unplanned_stops": 0, "stop_time_s": 0.0})
     if not stages.empty:
         # Bottleneck means elapsed process-window time, not raw actuator ON
         # time. Direct actuator pulses remain available separately for
@@ -412,6 +471,14 @@ def kpi_summary(telemetry: pd.DataFrame, cycles: pd.DataFrame, stages: pd.DataFr
     else:
         summary["bottleneck_stage"] = None
         summary["bottleneck_median_s"] = None
+    burn = pd.Series(dtype=float)
+    if not stages.empty:
+        burn = stages.loc[(stages["measurement"] == "stage_elapsed") & (stages["stage"] == "Baking"), "elapsed_s"].dropna()
+    summary["burn_median_s"] = float(burn.median()) if not burn.empty else None
+    summary["burn_values_s"] = burn.tolist()
+    summary["quality_passes"] = int(((burn >= 3.0) & (burn <= 7.0)).sum()) if not burn.empty else 0
+    summary["quality_checks"] = int(len(burn))
+    summary["fpy"] = float(summary["quality_passes"] / summary["quality_checks"]) if summary["quality_checks"] else None
     if events is not None and not events.empty:
         summary["critical_events"] = int((events["severity"] == "CRITICAL").sum()) if "severity" in events else 0
         summary["warning_events"] = int((events["severity"] == "WARNING").sum()) if "severity" in events else 0
