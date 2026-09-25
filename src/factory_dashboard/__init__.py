@@ -1,0 +1,1 @@
+"""Fischertechnik factory dashboard."""
