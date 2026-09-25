@@ -1,43 +1,30 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from .logic import color_class
 from .models import Health, Snapshot, SourceMode
+from .process_model import REFERENCE_CYCLE_SECONDS, REFERENCE_PHASES, phase_from_elapsed
 
 
 class FactorySimulation:
-    """Safe visualization-only simulation derived from the supplied PLC sequence."""
+    """Safe visualization-only simulation based on the measured factory cycle."""
 
-    PHASES = [
-        ("HBW retrieve", 3.0),
-        ("Crane transfer", 3.0),
-        ("Oven door / prepare", 2.0),
-        ("Retract oven slider", 2.0),
-        ("Burning", 5.0),
-        ("Open oven", 2.0),
-        ("Extend oven slider", 2.0),
-        ("Close oven / settle", 1.0),
-        ("Delivery", 4.0),
-        ("Sawing", 3.0),
-        ("Move to sorting", 2.0),
-        ("Sorting / color detection", 2.0),
-        ("Sorting / storage", 3.0),
-    ]
-
+    PHASES = list(REFERENCE_PHASES)
+    CYCLE_SECONDS = REFERENCE_CYCLE_SECONDS
     COLORS = [(250, "White"), (150, "Red"), (50, "Blue")]
 
     def __init__(self):
         self.running = True
         self.t0 = datetime.now(timezone.utc)
         self.offset = 0.0
-        self._last_cycle = 0
+        self._last_cycle = 1
 
     def reset(self) -> None:
         self.t0 = datetime.now(timezone.utc)
         self.offset = 0.0
-        self._last_cycle = 0
+        self._last_cycle = 1
         self.running = True
 
     def toggle(self) -> None:
@@ -55,26 +42,13 @@ class FactorySimulation:
         now = datetime.now(timezone.utc)
         elapsed = (now - self.t0).total_seconds() if self.running else self.offset
         self.offset = max(0.0, elapsed)
-        total = sum(d for _, d in self.PHASES)
-        cycle = int(elapsed // total)
-        self._last_cycle = cycle
-        cycle_time = elapsed % total
 
-        cursor = 0.0
-        phase_index = len(self.PHASES) - 1
-        phase = self.PHASES[-1][0]
-        phase_elapsed = 0.0
-        phase_remaining = 0.0
-        for i, (name, duration) in enumerate(self.PHASES):
-            if cycle_time < cursor + duration:
-                phase_index = i
-                phase = name
-                phase_elapsed = cycle_time - cursor
-                phase_remaining = duration - phase_elapsed
-                break
-            cursor += duration
+        zero_based_cycle = int(elapsed // self.CYCLE_SECONDS)
+        self._last_cycle = zero_based_cycle + 1
+        cycle_time = elapsed % self.CYCLE_SECONDS
+        phase_index, phase, phase_elapsed, phase_remaining = phase_from_elapsed(cycle_time)
 
-        color_value, color_name = self.COLORS[cycle % len(self.COLORS)]
+        color_value, color_name = self.COLORS[zero_based_cycle % len(self.COLORS)]
         values = self._base_values()
         self._apply_phase(values, phase_index, color_value, color_name)
         values.update({
@@ -82,19 +56,23 @@ class FactorySimulation:
             "sim.phase_index": phase_index,
             "sim.phase_elapsed_s": phase_elapsed,
             "sim.phase_remaining_s": phase_remaining,
-            "sim.cycle": cycle,
+            "sim.cycle": self._last_cycle,
+            "sim.cycle_elapsed_s": cycle_time,
+            "sim.cycle_period_s": self.CYCLE_SECONDS,
             "sim.running": self.running,
             "sl.sensor.color_value": color_value,
             "sim.color": color_name,
+            # Keep PLC step as a simulated reported value only. It does not gate
+            # the station activity model.
             "local.ms_step": self._ms_step_for_phase(phase_index),
             "local.emergency_not_pressed": True,
             "local.emergency_memory": False,
-            "local.sl_sorting_requested": phase_index in (11, 12),
-            "local.crane_secured": phase_index in (1, 8),
+            "local.sl_sorting_requested": phase_index in (6, 7),
+            "local.crane_secured": phase_index in (2, 3),
             "local.crane_coord_h": 890 if phase_index >= 2 else 1347,
             "local.crane_coord_v": 870 if phase_index >= 2 else 170,
             "local.crane_coord_r": 500,
-            "local.sl_workpiece_coord": 3 if phase_index in (11, 12) else 0,
+            "local.sl_workpiece_coord": 3 if phase_index in (6, 7) else 0,
         })
         return Snapshot(
             timestamp=now,
@@ -103,7 +81,7 @@ class FactorySimulation:
             source=SourceMode.SIMULATION,
             connected=True,
             emergency=False,
-            message=f"Simulation: {phase} · {color_name} workpiece",
+            message=f"Simulation: cycle {self._last_cycle} · {phase} · {color_name} workpiece",
             health=Health.OK,
             last_good_timestamp=now,
             good_count=len(values),
@@ -112,9 +90,10 @@ class FactorySimulation:
 
     @staticmethod
     def _ms_step_for_phase(phase: int) -> int:
-        if phase <= 7:
+        # Approximation of the PLC's coarse MS step for compatibility only.
+        if phase <= 1:
             return 0
-        if phase == 8:
+        if phase in (2, 3):
             return 1
         return 2
 
@@ -139,54 +118,35 @@ class FactorySimulation:
 
     @staticmethod
     def _apply_phase(values: dict[str, Any], phase: int, color_value: int, color_name: str) -> None:
-        if phase == 0:  # HBW retrieval
-            values["hbw.motor.crane_conveyor"] = True
-            values["hbw.motor.crane_down"] = True
-            values["hbw.motor.cantilever_forward"] = True
-        elif phase == 1:  # crane transfer to MS
-            values["c.air.compressor"] = True
-            values["c.motor.forward"] = True
-            values["c.motor.up"] = True
-            values["c.valve.vacuum"] = True
-        elif phase == 2:
-            values["ms.air.compressor"] = True
-            values["ms.valve.oven_door"] = True
-            values["ms.sensor.oven"] = True
-        elif phase == 3:
-            values["ms.air.compressor"] = True
-            values["ms.valve.oven_door"] = True
-            values["ms.motor.slider_in"] = True
-        elif phase == 4:
+        # The cycle is anchored at burning. HBW/C work is deliberately placed in
+        # the final phase to demonstrate the real pipeline: the next workpiece
+        # can be prepared while the current one is completing sorting.
+        if phase == 0:  # Burning
             values["ms.process.burn"] = True
             values["ms.sensor.oven"] = True
-        elif phase == 5:
-            values["ms.air.compressor"] = True
-            values["ms.valve.oven_door"] = True
-        elif phase == 6:
-            values["ms.air.compressor"] = True
+        elif phase == 1:  # Oven release
             values["ms.valve.oven_door"] = True
             values["ms.motor.slider_out"] = True
-        elif phase == 7:
-            values["ms.air.compressor"] = True
-            values["ms.valve.oven_door"] = True
-        elif phase == 8:  # delivery
-            values["ms.air.compressor"] = True
+        elif phase == 2:  # Transfer from oven
             values["ms.motor.transfer_oven"] = True
             values["ms.valve.transfer"] = True
             values["ms.valve.vacuum"] = True
-        elif phase == 9:  # sawing
+        elif phase == 3:  # Transfer to turntable
+            values["ms.motor.transfer_turntable"] = True
+            values["ms.valve.transfer"] = True
+            values["ms.valve.vacuum"] = True
+        elif phase == 4:  # Sawing
             values["ms.motor.turntable_cw"] = True
             values["ms.motor.saw"] = True
-        elif phase == 10:
+        elif phase == 5:  # Move to sorting / piece enters sorting line
             values["ms.motor.conveyor"] = True
             values["sl.motor.conveyor"] = True
-            values["sl.sensor.before_color"] = True
-        elif phase == 11:
-            values["ms.motor.conveyor"] = True
+            # Active-low light barrier: FALSE means the workpiece is present
+            # at the sorting-line entry.
+            values["sl.sensor.before_color"] = False
+        elif phase == 6:  # Sorting
             values["sl.motor.conveyor"] = True
-            values["sl.sensor.before_color"] = True
             values["sl.sensor.after_color"] = True
-        elif phase == 12:
             values["sl.air.compressor"] = True
             if color_name == "White":
                 values["sl.valve.white"] = True
@@ -194,4 +154,17 @@ class FactorySimulation:
                 values["sl.valve.red"] = True
             else:
                 values["sl.valve.blue"] = True
-            values[f"sl.sensor.{color_name.lower()}"] = True
+        elif phase == 7:  # Next material preparation / HBW pickup for next cycle
+            values["hbw.sensor.outside"] = False
+            values["c.valve.vacuum"] = True
+            values["hbw.motor.crane_conveyor"] = True
+            values["hbw.motor.crane_down"] = True
+            values["hbw.motor.cantilever_forward"] = True
+            values["c.air.compressor"] = True
+            values["c.motor.forward"] = True
+            values["c.motor.up"] = True
+            values["c.valve.vacuum"] = True
+
+        # Avoid unused import warnings and keep the exact PLC color thresholds
+        # visible in the simulation data.
+        assert color_class(color_value) == color_name

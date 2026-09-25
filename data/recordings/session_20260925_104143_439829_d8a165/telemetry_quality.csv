@@ -1,0 +1,1 @@
+snapshot_id,timestamp,good_count,bad_count,source_timestamp_count,server_timestamp_count,source_min_timestamp,source_max_timestamp,sync_spread_ms,connected,health

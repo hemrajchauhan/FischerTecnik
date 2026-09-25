@@ -1,0 +1,6 @@
+measurement,stage,signal,occurrence,cycle_context,start,end,elapsed_s,actuator_on_s,complete
+actuator_on,Burning,ms.process.burn,1,1.0,2026-09-25 12:35:11.629916+00:00,2026-09-25 12:35:16.325184+00:00,4.695268,4.695268,True
+actuator_on,Oven door,ms.valve.oven_door,1,,2026-09-25 12:35:07.241665+00:00,2026-09-25 12:35:10.235836+00:00,2.994171,2.994171,True
+actuator_on,Oven door,ms.valve.oven_door,2,1.0,2026-09-25 12:35:16.329184+00:00,2026-09-25 12:35:17.394245+00:00,1.065061,1.065061,True
+actuator_on,Oven slider out,ms.motor.slider_out,1,1.0,2026-09-25 12:35:16.322184+00:00,2026-09-25 12:35:17.410246+00:00,1.088062,1.088062,True
+stage_elapsed,Burning,rise:ms.process.burn -> fall:ms.process.burn,1,1.0,2026-09-25 12:35:11.629916+00:00,2026-09-25 12:35:16.325184+00:00,4.695268,4.695268,True

@@ -32,6 +32,10 @@ class Snapshot:
     last_good_timestamp: datetime | None = None
     good_count: int = 0
     bad_count: int = 0
+    snapshot_id: int | None = None
+    source_timestamps: dict[str, datetime] = field(default_factory=dict)
+    server_timestamps: dict[str, datetime] = field(default_factory=dict)
+    sync_spread_ms: float | None = None
 
     def get(self, name: str, default: Any = False) -> Any:
         return self.values.get(name, default)
@@ -45,6 +49,23 @@ class Snapshot:
             return float(value)
         except (TypeError, ValueError):
             return default
+
+    @property
+    def source_timestamp_reference(self) -> datetime | None:
+        """Common analytical timestamp for this snapshot.
+
+        The latest available OPC UA SourceTimestamp is used so the reference
+        cannot precede any value included in the snapshot. Individual node
+        timestamps remain available in ``source_timestamps`` and the spread
+        exposes how far the values are from being source-synchronous.
+        """
+        if not self.source_timestamps:
+            return None
+        return max(self.source_timestamps.values())
+
+    def timestamp_for(self, key: str) -> datetime:
+        """Return the node SourceTimestamp when available, otherwise snapshot time."""
+        return self.source_timestamps.get(key, self.timestamp)
 
     @property
     def age_s(self) -> float:

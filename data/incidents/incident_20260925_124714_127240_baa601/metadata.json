@@ -1,0 +1,24 @@
+{
+  "incident_id": "incident_20260925_124714_127240_baa601",
+  "session": "session_20260925_111615_374082_9146c5",
+  "event": {
+    "timestamp": "2026-09-25T12:47:14.127240+00:00",
+    "category": "PROCESS_LOGIC",
+    "severity": "CRITICAL",
+    "code": "PROCESS_UNEXPECTED_ACTUATOR_FOR_PHASE:sl.motor.conveyor:",
+    "message": "sl.motor.conveyor is active during Sawing, outside its expected process window.",
+    "details": {
+      "kind": "unexpected_actuator_for_phase",
+      "tag": "sl.motor.conveyor",
+      "expected": [
+        "Move to sorting",
+        "Sorting"
+      ],
+      "actual": true,
+      "phase": "Sawing",
+      "message": "sl.motor.conveyor is active during Sawing, outside its expected process window."
+    }
+  },
+  "pre_seconds": 60.0,
+  "post_seconds": 60.0
+}

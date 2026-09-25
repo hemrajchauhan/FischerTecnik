@@ -19,8 +19,10 @@ class Settings:
     refresh_ms: int = int(os.getenv("DASHBOARD_REFRESH_MS", "1000"))
     history_seconds: int = int(os.getenv("HISTORY_SECONDS", "300"))
     stale_after: float = float(os.getenv("OPCUA_STALE_AFTER", "3.0"))
-    record_live: bool = os.getenv("RECORD_LIVE", "true").lower() in {"1", "true", "yes", "on"}
-    replay_speed: float = float(os.getenv("REPLAY_SPEED", "1.0"))
+    incident_pre_seconds: float = float(os.getenv("INCIDENT_PRE_SECONDS", "60"))
+    incident_post_seconds: float = float(os.getenv("INCIDENT_POST_SECONDS", "60"))
+    process_watchdog_seconds: float = float(os.getenv("PROCESS_WATCHDOG_SECONDS", "90"))
+    opcua_sync_warning_ms: float = float(os.getenv("OPCUA_SYNC_WARNING_MS", "100"))
 
 
 SETTINGS = Settings()

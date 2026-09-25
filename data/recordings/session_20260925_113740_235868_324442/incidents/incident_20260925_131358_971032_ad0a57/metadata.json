@@ -1,0 +1,18 @@
+{
+  "incident_id": "incident_20260925_131358_971032_ad0a57",
+  "session": "session_20260925_113740_235868_324442",
+  "event": {
+    "timestamp": "2026-09-25T13:13:58.971032+00:00",
+    "category": "PROCESS_WATCHDOG",
+    "severity": "WARNING",
+    "code": "PROCESS_PHASE_TIMEOUT",
+    "message": "Process phase 'Transfer from oven' has remained active for more than 90s.",
+    "details": {
+      "phase_index": 2,
+      "phase": "Transfer from oven",
+      "elapsed_s": 90.009148
+    }
+  },
+  "pre_seconds": 60.0,
+  "post_seconds": 60.0
+}

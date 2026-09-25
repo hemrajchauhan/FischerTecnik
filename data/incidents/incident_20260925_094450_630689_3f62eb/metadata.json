@@ -1,0 +1,23 @@
+{
+  "incident_id": "incident_20260925_094450_630689_3f62eb",
+  "session": "session_20260925_094450_870865_698323",
+  "event": {
+    "timestamp": "2026-09-25T09:44:50.630689+00:00",
+    "category": "PROCESS_LOGIC",
+    "severity": "WARNING",
+    "code": "PROCESS_UNEXPECTED_SENSOR_TRANSITION:sl.sensor.red:",
+    "message": "sl.sensor.red changed to TRUE during Idle / waiting; this sensor transition is outside its expected process window.",
+    "details": {
+      "kind": "unexpected_sensor_transition",
+      "tag": "sl.sensor.red",
+      "expected": [
+        "Sorting"
+      ],
+      "actual": true,
+      "phase": "Idle / waiting",
+      "message": "sl.sensor.red changed to TRUE during Idle / waiting; this sensor transition is outside its expected process window."
+    }
+  },
+  "pre_seconds": 60.0,
+  "post_seconds": 60.0
+}

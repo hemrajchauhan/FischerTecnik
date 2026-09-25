@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from .models import Health, Snapshot
+from .process_model import PROCESS_OUTPUTS, infer_process_phase
 
 
 @dataclass(frozen=True)
@@ -13,87 +14,117 @@ class RegionStatus:
     active: bool
     fault: bool = False
     detail: str = ""
+    occupied: bool = False
+    state_active: bool = False
 
 
 def any_true(snapshot: Snapshot, names: Iterable[str]) -> bool:
     return any(snapshot.bool(name) for name in names)
 
 
+# These are deliberately ONLY physical process outputs. A TRUE sensor,
+# reference switch, encoder, valve or compressor does not make the image region
+# green because the idle recording proves many such signals are TRUE at rest.
+REGION_ACTIVITY = {key: tuple(sorted(values)) for key, values in PROCESS_OUTPUTS.items()}
+
+REGION_STATE_SIGNALS: dict[str, tuple[str, ...]] = {
+    "hbw": (
+        "hbw.sensor.inside", "hbw.sensor.outside", "hbw.sensor.trail_bottom",
+        "hbw.sensor.trail_top", "hbw.ref.horizontal", "hbw.ref.vertical",
+        "hbw.ref.cantilever_front", "hbw.ref.cantilever_back",
+    ),
+    "crane": (
+        "c.ref.vertical", "c.ref.horizontal", "c.ref.rotate",
+    ),
+    "ms": (
+        "ms.sensor.oven", "ms.sensor.conveyor", "ms.turntable.transfer",
+        "ms.turntable.conveyor", "ms.turntable.saw", "ms.transfer.oven",
+        "ms.transfer.turntable", "ms.oven.slider_inside", "ms.oven.slider_outside",
+    ),
+    "pm": (
+        "pm.sensor.entry", "pm.sensor.tool", "pm.ref.top", "pm.ref.bottom",
+    ),
+    "sl": (
+        "sl.sensor.before_color", "sl.sensor.after_color", "sl.sensor.white",
+        "sl.sensor.red", "sl.sensor.blue",
+    ),
+}
+
+REGION_UTILITY_SIGNALS: dict[str, tuple[str, ...]] = {
+    "crane": ("c.air.compressor", "c.valve.vacuum"),
+    "ms": ("ms.air.compressor", "ms.valve.vacuum", "ms.valve.transfer", "ms.valve.oven_door", "ms.valve.ejector"),
+    "sl": ("sl.air.compressor",),
+}
+
+REGION_LABELS = {
+    "hbw": "High Bay Warehouse",
+    "crane": "Vacuum Gripper Crane",
+    "ms": "Multi Processing Station",
+    "pm": "Punching Machine",
+    "sl": "Sorting Line",
+}
+
+REGION_DETAILS = {
+    "hbw": "Stacker crane / warehouse conveyor",
+    "crane": "Vacuum gripper handling robot",
+    "ms": "Oven, transfer unit, turntable and saw",
+    "pm": "Punching station",
+    "sl": "Conveyor, colour detection and sorting cylinders",
+}
+
+
+def _active_tags(s: Snapshot, region: str) -> list[str]:
+    return [name for name in REGION_ACTIVITY[region] if s.bool(name)]
+
+
+def _state_tags(s: Snapshot, region: str) -> list[str]:
+    return [name for name in REGION_STATE_SIGNALS[region] if s.bool(name)]
+
+
+def _utility_tags(s: Snapshot, region: str) -> list[str]:
+    return [name for name in REGION_UTILITY_SIGNALS.get(region, ()) if s.bool(name)]
+
+
 def region_statuses(s: Snapshot) -> list[RegionStatus]:
-    """Map telemetry to physical factory regions.
+    """Map telemetry to the physical factory regions.
 
-    Fault state is deliberately derived from explicit safety/telemetry state,
-    not from alarm-text matching. This keeps visualization deterministic.
+    Green highlighting means a physical process output is active. Sensor and
+    reference states are shown as diagnostics only. This is intentionally not
+    an occupancy detector because the idle capture contains many TRUE sensors.
     """
-    global_fault = s.health in {Health.ERROR, Health.STALE} and not s.connected
-    emergency = s.emergency
-
-    regions = [
-        RegionStatus(
-            "hbw", "High Bay Warehouse",
-            any_true(s, [
-                "hbw.motor.conveyor_forward", "hbw.motor.conveyor_backward",
-                "hbw.motor.crane_rack", "hbw.motor.crane_conveyor", "hbw.motor.crane_down",
-                "hbw.motor.crane_up", "hbw.motor.cantilever_forward", "hbw.motor.cantilever_backward",
-            ]), detail="Stacker crane / conveyor activity"),
-        RegionStatus(
-            "crane", "Crane",
-            any_true(s, [
-                "c.motor.up", "c.motor.down", "c.motor.backward", "c.motor.forward",
-                "c.motor.cw", "c.motor.ccw", "c.valve.vacuum",
-            ]), detail="Crane motion / vacuum"),
-        RegionStatus(
-            "ms", "Machining Station",
-            any_true(s, [
-                "ms.motor.turntable_cw", "ms.motor.turntable_ccw", "ms.motor.conveyor",
-                "ms.motor.saw", "ms.motor.slider_in", "ms.motor.slider_out",
-                "ms.motor.transfer_oven", "ms.motor.transfer_turntable", "ms.process.burn",
-                "ms.valve.oven_door", "ms.valve.ejector",
-            ]) or any_true(s, ["ms.sensor.oven", "ms.sensor.conveyor"]),
-            detail="Oven, turntable, saw and transfer unit"),
-        RegionStatus(
-            "pm", "Punching Machine",
-            any_true(s, [
-                "pm.motor.conveyor_forward", "pm.motor.conveyor_backward",
-                "pm.motor.tool_up", "pm.motor.tool_down",
-            ]), detail="Conveyor / punching tool"),
-        RegionStatus(
-            "sl", "Sorting Line",
-            any_true(s, [
-                "sl.motor.conveyor", "sl.valve.white", "sl.valve.red", "sl.valve.blue",
-            ]) or any_true(s, ["sl.sensor.before_color", "sl.sensor.after_color"]),
-            detail="Color detection / storage"),
-    ]
-
-    # A stale/error source is shown as a data-quality problem, not as a
-    # machine fault. Emergency is the only global red safety state.
-    if emergency:
-        return [RegionStatus(r.key, r.label, r.active, True, r.detail) for r in regions]
-    if global_fault:
-        return regions
+    regions: list[RegionStatus] = []
+    for key in ("hbw", "crane", "ms", "pm", "sl"):
+        active_tags = _active_tags(s, key)
+        state_tags = _state_tags(s, key)
+        utility_tags = _utility_tags(s, key)
+        active = bool(active_tags)
+        detail = REGION_DETAILS[key]
+        if active_tags:
+            detail += " · Motion/process: " + ", ".join(active_tags)
+        else:
+            detail += " · No process output active"
+        if utility_tags:
+            detail += " · Utility: " + ", ".join(utility_tags)
+        if state_tags:
+            detail += " · Sensor/reference TRUE: " + ", ".join(state_tags)
+        regions.append(RegionStatus(
+            key=key,
+            label=REGION_LABELS[key],
+            active=active,
+            fault=s.emergency,
+            detail=detail,
+            # Kept for compatibility with older callers, but intentionally false:
+            # a TRUE sensor is not equivalent to verified workpiece occupancy.
+            occupied=False,
+            state_active=bool(state_tags),
+        ))
     return regions
 
 
 def process_phase(s: Snapshot) -> str:
     if "sim.phase" in s.values:
-        return str(s.values["sim.phase"])
-
-    step = s.get("local.ms_step", None)
-    if step == 0:
-        if s.bool("ms.process.burn"):
-            return "Burning"
-        return "Oven / Burning sequence"
-    if step == 1:
-        return "Delivery"
-    if step == 2:
-        if s.bool("ms.motor.saw"):
-            return "Sawing"
-        return "Sawing / transfer"
-    if s.bool("sl.motor.conveyor") or s.bool("local.sl_sorting_requested"):
-        return "Sorting"
-    if s.bool("pm.motor.tool_down") or s.bool("pm.motor.tool_up"):
-        return "Punching"
-    return "Running"
+        return str(s.get("sim.phase"))
+    return infer_process_phase(s.values).name
 
 
 def emergency_source(s: Snapshot) -> str:
@@ -105,7 +136,15 @@ def emergency_source(s: Snapshot) -> str:
 
 
 def color_class(value: float | int | None) -> str:
-    """Exact classification used by p_ColorSorting.TcPOU."""
+    """Classify a calibrated reflection value.
+
+    The supplied PLC thresholds are only meaningful for calibrated reflection
+    values. The captured factory recordings contain mostly 0/1 values while
+    idle, so treating every low value as ``Blue`` creates a false blue state.
+    Low/un-calibrated values are therefore reported as ``Unknown`` here.
+    Simulation uses calibrated values (50/150/250) and continues to classify
+    them as Blue/Red/White.
+    """
     if value is None:
         return "Unknown"
     try:
@@ -116,7 +155,45 @@ def color_class(value: float | int | None) -> str:
         return "White"
     if v > 100:
         return "Red"
-    return "Blue"
+    if v >= 40:
+        return "Blue"
+    return "Unknown"
+
+
+def sorting_color(snapshot: Snapshot, history_df=None) -> tuple[str, str]:
+    """Return the best available sorting-color observation and its source.
+
+    Priority is given to the actual sorting actuator because the three valves
+    are the PLC's commanded destination for the detected workpiece. This also
+    handles short valve pulses that may have already ended by the time the
+    dashboard renders the current snapshot, provided the live/replay history
+    contains the pulse. A calibrated color-sensor value is used when available.
+    Raw low values such as 0/1 from the captured idle recordings are not
+    interpreted as Blue.
+    """
+    valve_colors = (
+        ("sl.valve.white", "White"),
+        ("sl.valve.red", "Red"),
+        ("sl.valve.blue", "Blue"),
+    )
+    active = [name for name, color in valve_colors if snapshot.bool(name)]
+    if len(active) == 1:
+        color = next(color for name, color in valve_colors if name == active[0])
+        return color, "sorting valve"
+    if len(active) > 1:
+        return "Unknown", "conflicting sorting valves"
+
+    if history_df is not None and not history_df.empty:
+        for name, color in valve_colors:
+            if name in history_df.columns:
+                mask = history_df[name].fillna(False).astype(bool)
+                if mask.any():
+                    return color, "last sorting valve"
+
+    sensor_color = color_class(snapshot.get("sl.sensor.color_value"))
+    if sensor_color != "Unknown":
+        return sensor_color, "color sensor"
+    return "Unknown", "unclassified sensor value"
 
 
 def fault_summary(s: Snapshot) -> list[str]:

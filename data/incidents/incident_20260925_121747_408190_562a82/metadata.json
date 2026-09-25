@@ -1,0 +1,17 @@
+{
+  "incident_id": "incident_20260925_121747_408190_562a82",
+  "session": "session_20260925_104537_149458_4419b3",
+  "event": {
+    "timestamp": "2026-09-25T12:17:47.408190+00:00",
+    "category": "TELEMETRY",
+    "severity": "WARNING",
+    "code": "SOURCE_TIMESTAMP_SPREAD",
+    "message": "Source timestamps in this snapshot span 110.0 ms.",
+    "details": {
+      "spread_ms": 110.00699999999999,
+      "threshold_ms": 100.0
+    }
+  },
+  "pre_seconds": 60.0,
+  "post_seconds": 60.0
+}

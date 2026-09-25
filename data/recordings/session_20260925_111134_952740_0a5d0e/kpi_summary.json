@@ -1,0 +1,15 @@
+{
+  "samples": 31,
+  "duration_s": 26.484515,
+  "cycles_completed": 0,
+  "cycle_avg_s": null,
+  "cycle_median_s": null,
+  "cycle_min_s": null,
+  "cycle_max_s": null,
+  "cycle_std_s": null,
+  "throughput_per_hour": null,
+  "bottleneck_stage": null,
+  "bottleneck_median_s": null,
+  "critical_events": 0,
+  "warning_events": 7
+}

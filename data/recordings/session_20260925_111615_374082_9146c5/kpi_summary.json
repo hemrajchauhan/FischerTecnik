@@ -1,0 +1,16 @@
+{
+  "samples": 732,
+  "duration_s": 289.334549,
+  "cycles_completed": 5,
+  "cycle_avg_s": 50.627295600000004,
+  "cycle_median_s": 52.981031,
+  "cycle_min_s": 46.743673,
+  "cycle_max_s": 53.357052,
+  "cycle_std_s": 3.152602496439702,
+  "throughput_per_hour": 67.94884757905145,
+  "cycle_definition": "burn-to-burn (primary); oven-arrival-to-arrival shown separately when available",
+  "bottleneck_stage": "Sorting",
+  "bottleneck_median_s": 12.144695,
+  "critical_events": 4,
+  "warning_events": 137
+}

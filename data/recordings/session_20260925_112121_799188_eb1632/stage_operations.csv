@@ -1,0 +1,17 @@
+measurement,stage,signal,occurrence,cycle_context,start,end,elapsed_s,actuator_on_s,complete
+actuator_on,Burning,ms.process.burn,1,1.0,2026-09-25 12:50:53.976815+00:00,2026-09-25 12:50:58.877095+00:00,4.90028,4.90028,True
+actuator_on,Oven door,ms.valve.oven_door,1,,2026-09-25 12:50:49.830578+00:00,2026-09-25 12:50:53.587793+00:00,3.757215,3.757215,True
+actuator_on,Oven door,ms.valve.oven_door,2,1.0,2026-09-25 12:50:58.885096+00:00,2026-09-25 12:51:00.792205+00:00,1.9071090000000002,1.9071090000000002,True
+actuator_on,Oven slider out,ms.motor.slider_out,1,1.0,2026-09-25 12:50:59.363123+00:00,2026-09-25 12:51:00.785204+00:00,1.422081,1.422081,True
+actuator_on,Transfer to turntable,ms.motor.transfer_turntable,1,,2026-09-25 12:50:26.467241+00:00,2026-09-25 12:50:33.691655+00:00,7.224414,7.224414,True
+actuator_on,Turntable clockwise,ms.motor.turntable_cw,1,,2026-09-25 12:50:36.171796+00:00,2026-09-25 12:50:37.690883+00:00,1.5190869999999999,1.5190869999999999,True
+actuator_on,Turntable clockwise,ms.motor.turntable_cw,2,,2026-09-25 12:50:38.929954+00:00,2026-09-25 12:50:39.678997+00:00,0.749043,0.749043,True
+actuator_on,Sawing,ms.motor.saw,1,,2026-09-25 12:50:37.694884+00:00,2026-09-25 12:50:38.932954+00:00,1.23807,1.23807,True
+actuator_on,MS conveyor,ms.motor.conveyor,1,,2026-09-25 12:50:40.535046+00:00,2026-09-25 12:50:42.062133+00:00,1.5270869999999999,1.5270869999999999,True
+actuator_on,Sorting conveyor,sl.motor.conveyor,1,,2026-09-25 12:50:40.589049+00:00,2026-09-25 12:50:47.495444+00:00,6.906395,6.906395,True
+actuator_on,Sorting blue,sl.valve.blue,1,,2026-09-25 12:50:47.867465+00:00,2026-09-25 12:50:48.416497+00:00,0.549032,0.549032,True
+stage_elapsed,Burning,rise:ms.process.burn -> fall:ms.process.burn,1,1.0,2026-09-25 12:50:53.976815+00:00,2026-09-25 12:50:58.877095+00:00,4.90028,4.90028,True
+stage_elapsed,Sawing,rise:ms.motor.turntable_cw -> rise:ms.motor.conveyor,1,,2026-09-25 12:50:36.171796+00:00,2026-09-25 12:50:40.535046+00:00,4.36325,3.5031999999999996,True
+stage_elapsed,Sawing,rise:ms.motor.turntable_cw -> rise:ms.motor.conveyor,2,,2026-09-25 12:50:38.929954+00:00,2026-09-25 12:50:40.535046+00:00,1.605092,0.749043,True
+stage_elapsed,Move to sorting,rise:ms.motor.conveyor -> fall:ms.motor.conveyor,1,,2026-09-25 12:50:40.535046+00:00,2026-09-25 12:50:42.062133+00:00,1.5270869999999999,1.5270869999999999,True
+stage_elapsed,Sorting,fall:ms.motor.conveyor -> next preparation/burn,1,,2026-09-25 12:50:42.062133+00:00,2026-09-25 12:50:49.830578+00:00,7.768445,5.982343,True

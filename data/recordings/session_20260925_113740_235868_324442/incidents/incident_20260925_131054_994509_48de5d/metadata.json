@@ -1,0 +1,24 @@
+{
+  "incident_id": "incident_20260925_131054_994509_48de5d",
+  "session": "session_20260925_113740_235868_324442",
+  "event": {
+    "timestamp": "2026-09-25T13:10:54.994509+00:00",
+    "category": "PROCESS_LOGIC",
+    "severity": "CRITICAL",
+    "code": "PROCESS_UNEXPECTED_ACTUATOR_FOR_PHASE:sl.motor.conveyor:",
+    "message": "sl.motor.conveyor is active during Next material preparation, outside its expected process window.",
+    "details": {
+      "kind": "unexpected_actuator_for_phase",
+      "tag": "sl.motor.conveyor",
+      "expected": [
+        "Move to sorting",
+        "Sorting"
+      ],
+      "actual": true,
+      "phase": "Next material preparation",
+      "message": "sl.motor.conveyor is active during Next material preparation, outside its expected process window."
+    }
+  },
+  "pre_seconds": 60.0,
+  "post_seconds": 60.0
+}

@@ -1,0 +1,16 @@
+{
+  "samples": 142,
+  "duration_s": 140.340027,
+  "cycles_completed": 3,
+  "cycle_avg_s": 45.381929333333325,
+  "cycle_median_s": 45.80262,
+  "cycle_min_s": 42.31042,
+  "cycle_max_s": 48.032748,
+  "cycle_std_s": 2.3549939720604134,
+  "throughput_per_hour": 78.5981238627834,
+  "cycle_definition": "burn-to-burn (primary); oven-arrival-to-arrival shown separately when available",
+  "bottleneck_stage": "Transfer to turntable",
+  "bottleneck_median_s": 9.999572,
+  "critical_events": 0,
+  "warning_events": 25
+}

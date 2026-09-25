@@ -130,31 +130,57 @@ _add("gvl_SL", "SL", [
 TAGS["sl.sensor.color_value"] = Tag("sl.sensor.color_value", "gvl_SL", "iColorSensor_SL", "Color sensor reflection value", "SL", "int")
 
 
-# LocalVariables are not marked with OPC.UA.DA in the uploaded project. The
-# dashboard therefore treats these as optional tags: if the server exposes
-# them they are read; otherwise the UI derives a safe state from GVL signals.
-OPTIONAL_LOCAL_NODES = {
-    "local.emergency_not_pressed": "LocalVariables.bEmergencyShutdown_NotPressed",
-    "local.emergency_memory": "LocalVariables.bEmergencyShutdown_Memory",
-    "local.ms_step": "LocalVariables.iMS_Step",
-    "local.end_simulation": "LocalVariables.bEndSimulation",
-    "local.all_devices_init": "LocalVariables.bAllDevices_InitPos",
-    "local.hbw_no_wp": "LocalVariables.bHBW_NoWPRemaining",
-    "local.hbw_wpc_not_empty": "LocalVariables.bHBW_WPCNotEmpty",
-    "local.hbw_distance_h": "LocalVariables.iHBW_TravelledDistanceH_StackerCrane",
-    "local.hbw_distance_v": "LocalVariables.iHBW_TravelledDistanceV_StackerCrane",
-    "local.hbw_index_h": "LocalVariables.iHBW_IndexH",
-    "local.hbw_index_v": "LocalVariables.iHBW_IndexV",
-    "local.crane_secured": "LocalVariables.bC_WPSecured",
+# LocalVariables are not part of the stable OPC-UA data contract in this
+# project.  The live server capture showed exactly three LocalVariables nodes
+# that are valid and useful for visualisation: the crane H/V/R coordinates.
+# The other 14 LocalVariables previously registered by the dashboard return
+# BadNodeIdUnknown and must NOT be polled every cycle.
+VERIFIED_LOCAL_NODES = {
     "local.crane_coord_h": "LocalVariables.iC_CoordH",
     "local.crane_coord_v": "LocalVariables.iC_CoordV",
     "local.crane_coord_r": "LocalVariables.iC_CoordR",
-    "local.sl_sorting_requested": "LocalVariables.bSL_SortingRequested",
-    "local.sl_workpiece_coord": "LocalVariables.iSL_Coord_Workpiece",
 }
+
+# Sensor semantics are defined from the observed idle/run recordings. Most
+# light barriers are active when their raw PLC value is TRUE. The MS oven
+# light barrier is active-low: TRUE means the beam is clear, FALSE means a
+# workpiece is detected. Keep this separate from raw telemetry so the original
+# PLC value is never overwritten.
+# All light barriers in this PLC use the same physical convention observed
+# in the program logic: TRUE = beam clear, FALSE = workpiece present.
+# The PLC calls these values directly in conditions such as NOT LightBarrier
+# when waiting for a workpiece. Keep the raw value unchanged in telemetry and
+# normalize only for process/event interpretation.
+SENSOR_ACTIVE_WHEN: dict[str, bool] = {
+    key: False for key in (
+        "ms.sensor.oven", "ms.sensor.conveyor",
+        "sl.sensor.before_color", "sl.sensor.after_color",
+        "sl.sensor.white", "sl.sensor.red", "sl.sensor.blue",
+        "pm.sensor.entry", "pm.sensor.tool",
+        "hbw.sensor.inside", "hbw.sensor.outside",
+    )
+}
+
+SENSOR_KEYS = tuple(SENSOR_ACTIVE_WHEN.keys())
+
+
+def sensor_is_active(key: str, value: object) -> bool:
+    """Convert a raw sensor value into its physical/semantic active state."""
+    raw = bool(value)
+    return raw == SENSOR_ACTIVE_WHEN.get(key, True)
+
+
+def sensor_active_edges(values: dict[str, object], previous: dict[str, object]) -> list[str]:
+    """Return sensors whose physical active state just became TRUE."""
+    return [
+        key for key in SENSOR_KEYS
+        if key in values
+        and sensor_is_active(key, values[key])
+        and not sensor_is_active(key, previous.get(key, not SENSOR_ACTIVE_WHEN.get(key, True)))
+    ]
 
 
 def all_live_nodes() -> dict[str, str]:
     nodes = {key: tag.node_id for key, tag in TAGS.items()}
-    nodes.update(OPTIONAL_LOCAL_NODES)
+    nodes.update(VERIFIED_LOCAL_NODES)
     return nodes

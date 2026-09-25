@@ -1,0 +1,21 @@
+{
+  "incident_id": "incident_20260925_094450_630689_5c7c4e",
+  "session": "session_20260925_094450_870865_698323",
+  "event": {
+    "timestamp": "2026-09-25T09:44:50.630689+00:00",
+    "category": "PROCESS_LOGIC",
+    "severity": "WARNING",
+    "code": "PROCESS_UNEXPECTED_SENSOR_TRANSITION:pm.sensor.entry:",
+    "message": "pm.sensor.entry changed to TRUE during Idle / waiting; this sensor transition is outside its expected process window.",
+    "details": {
+      "kind": "unexpected_sensor_transition",
+      "tag": "pm.sensor.entry",
+      "expected": [],
+      "actual": true,
+      "phase": "Idle / waiting",
+      "message": "pm.sensor.entry changed to TRUE during Idle / waiting; this sensor transition is outside its expected process window."
+    }
+  },
+  "pre_seconds": 60.0,
+  "post_seconds": 60.0
+}

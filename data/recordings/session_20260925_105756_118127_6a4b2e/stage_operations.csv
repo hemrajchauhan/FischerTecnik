@@ -1,0 +1,56 @@
+measurement,stage,signal,occurrence,cycle_context,start,end,elapsed_s,actuator_on_s,complete
+actuator_on,Burning,ms.process.burn,1,1.0,2026-09-25 12:27:05.619117+00:00,2026-09-25 12:27:10.422392+00:00,4.803275,4.803275,True
+actuator_on,Burning,ms.process.burn,2,2.0,2026-09-25 12:27:51.421737+00:00,2026-09-25 12:27:56.370020+00:00,4.948283,4.948283,True
+actuator_on,Burning,ms.process.burn,3,3.0,2026-09-25 12:28:39.454485+00:00,2026-09-25 12:28:43.589721+00:00,4.135236,4.135236,True
+actuator_on,Burning,ms.process.burn,4,4.0,2026-09-25 12:29:21.764905+00:00,,,,False
+actuator_on,Oven door,ms.valve.oven_door,1,,2026-09-25 12:27:01.389876+00:00,2026-09-25 12:27:04.336044+00:00,2.946168,2.946168,True
+actuator_on,Oven door,ms.valve.oven_door,2,1.0,2026-09-25 12:27:10.426392+00:00,2026-09-25 12:27:11.884476+00:00,1.458084,1.458084,True
+actuator_on,Oven door,ms.valve.oven_door,3,1.0,2026-09-25 12:27:47.380506+00:00,2026-09-25 12:27:51.425737+00:00,4.045231,4.045231,True
+actuator_on,Oven door,ms.valve.oven_door,4,2.0,2026-09-25 12:27:56.377021+00:00,2026-09-25 12:27:58.548145+00:00,2.171124,2.171124,True
+actuator_on,Oven door,ms.valve.oven_door,5,2.0,2026-09-25 12:28:34.604207+00:00,2026-09-25 12:28:38.556433+00:00,3.952226,3.952226,True
+actuator_on,Oven door,ms.valve.oven_door,6,3.0,2026-09-25 12:28:43.593721+00:00,2026-09-25 12:28:46.185870+00:00,2.592149,2.592149,True
+actuator_on,Oven door,ms.valve.oven_door,7,3.0,2026-09-25 12:29:16.804621+00:00,2026-09-25 12:29:20.290820+00:00,3.486199,3.486199,True
+actuator_on,Oven slider out,ms.motor.slider_out,1,1.0,2026-09-25 12:27:10.418392+00:00,2026-09-25 12:27:11.877475+00:00,1.4590830000000001,1.4590830000000001,True
+actuator_on,Oven slider out,ms.motor.slider_out,2,2.0,2026-09-25 12:27:57.312074+00:00,2026-09-25 12:27:58.540144+00:00,1.22807,1.22807,True
+actuator_on,Oven slider out,ms.motor.slider_out,3,3.0,2026-09-25 12:28:44.290761+00:00,2026-09-25 12:28:46.178869+00:00,1.888108,1.888108,True
+actuator_on,Transfer from oven,ms.motor.transfer_oven,1,1.0,2026-09-25 12:27:11.878475+00:00,2026-09-25 12:27:20.396963+00:00,8.518488,8.518488,True
+actuator_on,Transfer from oven,ms.motor.transfer_oven,2,2.0,2026-09-25 12:27:58.542144+00:00,2026-09-25 12:28:07.659666+00:00,9.117522,9.117522,True
+actuator_on,Transfer from oven,ms.motor.transfer_oven,3,3.0,2026-09-25 12:28:46.179869+00:00,2026-09-25 12:28:54.276332+00:00,8.096463,8.096463,True
+actuator_on,Transfer to turntable,ms.motor.transfer_turntable,1,1.0,2026-09-25 12:27:21.471024+00:00,2026-09-25 12:27:29.262470+00:00,7.791446,7.791446,True
+actuator_on,Transfer to turntable,ms.motor.transfer_turntable,2,2.0,2026-09-25 12:28:07.660666+00:00,2026-09-25 12:28:15.587119+00:00,7.926453,7.926453,True
+actuator_on,Transfer to turntable,ms.motor.transfer_turntable,3,3.0,2026-09-25 12:28:55.460400+00:00,2026-09-25 12:29:03.452857+00:00,7.992457,7.992457,True
+actuator_on,Turntable clockwise,ms.motor.turntable_cw,1,1.0,2026-09-25 12:27:31.470596+00:00,2026-09-25 12:27:33.383705+00:00,1.913109,1.913109,True
+actuator_on,Turntable clockwise,ms.motor.turntable_cw,2,2.0,2026-09-25 12:28:18.288274+00:00,2026-09-25 12:28:19.472342+00:00,1.184068,1.184068,True
+actuator_on,Turntable clockwise,ms.motor.turntable_cw,3,3.0,2026-09-25 12:29:05.429970+00:00,2026-09-25 12:29:06.705043+00:00,1.275073,1.275073,True
+actuator_on,Turntable clockwise,ms.motor.turntable_cw,4,3.0,2026-09-25 12:29:08.200129+00:00,2026-09-25 12:29:09.379196+00:00,1.179067,1.179067,True
+actuator_on,Sawing,ms.motor.saw,1,1.0,2026-09-25 12:27:33.386706+00:00,2026-09-25 12:27:34.835789+00:00,1.449083,1.449083,True
+actuator_on,Sawing,ms.motor.saw,2,2.0,2026-09-25 12:28:19.475342+00:00,2026-09-25 12:28:21.342449+00:00,1.8671069999999999,1.8671069999999999,True
+actuator_on,Sawing,ms.motor.saw,3,3.0,2026-09-25 12:29:06.708043+00:00,2026-09-25 12:29:08.203129+00:00,1.4950860000000001,1.4950860000000001,True
+actuator_on,MS conveyor,ms.motor.conveyor,1,1.0,2026-09-25 12:27:35.581831+00:00,2026-09-25 12:27:37.510942+00:00,1.929111,1.929111,True
+actuator_on,MS conveyor,ms.motor.conveyor,2,2.0,2026-09-25 12:28:22.417510+00:00,2026-09-25 12:28:24.047603+00:00,1.630093,1.630093,True
+actuator_on,MS conveyor,ms.motor.conveyor,3,3.0,2026-09-25 12:29:09.381196+00:00,2026-09-25 12:29:12.647383+00:00,3.266187,3.266187,True
+actuator_on,Sorting conveyor,sl.motor.conveyor,1,1.0,2026-09-25 12:27:35.656836+00:00,2026-09-25 12:27:41.379163+00:00,5.722327,5.722327,True
+actuator_on,Sorting conveyor,sl.motor.conveyor,2,2.0,2026-09-25 12:28:22.482514+00:00,2026-09-25 12:28:28.728871+00:00,6.246357,6.246357,True
+actuator_on,Sorting conveyor,sl.motor.conveyor,3,3.0,2026-09-25 12:29:09.446200+00:00,2026-09-25 12:29:15.659555+00:00,6.213355,6.213355,True
+stage_elapsed,Burning,rise:ms.process.burn -> fall:ms.process.burn,1,1.0,2026-09-25 12:27:05.619117+00:00,2026-09-25 12:27:10.422392+00:00,4.803275,4.803275,True
+stage_elapsed,Burning,rise:ms.process.burn -> fall:ms.process.burn,2,2.0,2026-09-25 12:27:51.421737+00:00,2026-09-25 12:27:56.370020+00:00,4.948283,4.948283,True
+stage_elapsed,Burning,rise:ms.process.burn -> fall:ms.process.burn,3,3.0,2026-09-25 12:28:39.454485+00:00,2026-09-25 12:28:43.589721+00:00,4.135236,4.135236,True
+stage_elapsed,Oven release,fall:ms.process.burn -> rise:ms.motor.transfer_oven,1,1.0,2026-09-25 12:27:10.422392+00:00,2026-09-25 12:27:11.878475+00:00,1.456083,1.456083,True
+stage_elapsed,Oven release,fall:ms.process.burn -> rise:ms.motor.transfer_oven,2,2.0,2026-09-25 12:27:56.370020+00:00,2026-09-25 12:27:58.542144+00:00,2.172124,2.165123,True
+stage_elapsed,Oven release,fall:ms.process.burn -> rise:ms.motor.transfer_oven,3,3.0,2026-09-25 12:28:43.589721+00:00,2026-09-25 12:28:46.179869+00:00,2.590148,2.586148,True
+stage_elapsed,Transfer from oven,rise:ms.motor.transfer_oven -> rise:ms.motor.transfer_turntable,1,1.0,2026-09-25 12:27:11.878475+00:00,2026-09-25 12:27:21.471024+00:00,9.592549,9.576547999999999,True
+stage_elapsed,Transfer from oven,rise:ms.motor.transfer_oven -> rise:ms.motor.transfer_turntable,2,2.0,2026-09-25 12:27:58.542144+00:00,2026-09-25 12:28:07.660666+00:00,9.118522,9.117522,True
+stage_elapsed,Transfer from oven,rise:ms.motor.transfer_oven -> rise:ms.motor.transfer_turntable,3,3.0,2026-09-25 12:28:46.179869+00:00,2026-09-25 12:28:55.460400+00:00,9.280531,9.27553,True
+stage_elapsed,Transfer to turntable,rise:ms.motor.transfer_turntable -> rise:ms.motor.turntable_cw,1,1.0,2026-09-25 12:27:21.471024+00:00,2026-09-25 12:27:31.470596+00:00,9.999572,9.308533,True
+stage_elapsed,Transfer to turntable,rise:ms.motor.transfer_turntable -> rise:ms.motor.turntable_cw,2,2.0,2026-09-25 12:28:07.660666+00:00,2026-09-25 12:28:18.288274+00:00,10.627608,9.902566,True
+stage_elapsed,Transfer to turntable,rise:ms.motor.transfer_turntable -> rise:ms.motor.turntable_cw,3,3.0,2026-09-25 12:28:55.460400+00:00,2026-09-25 12:29:05.429970+00:00,9.969570000000001,9.96857,True
+stage_elapsed,Sawing,rise:ms.motor.turntable_cw -> rise:ms.motor.conveyor,1,1.0,2026-09-25 12:27:31.470596+00:00,2026-09-25 12:27:35.581831+00:00,4.111235,3.362192,True
+stage_elapsed,Sawing,rise:ms.motor.turntable_cw -> rise:ms.motor.conveyor,2,2.0,2026-09-25 12:28:18.288274+00:00,2026-09-25 12:28:22.417510+00:00,4.129236,3.0511749999999997,True
+stage_elapsed,Sawing,rise:ms.motor.turntable_cw -> rise:ms.motor.conveyor,3,3.0,2026-09-25 12:29:05.429970+00:00,2026-09-25 12:29:09.381196+00:00,3.951226,3.946226,True
+stage_elapsed,Sawing,rise:ms.motor.turntable_cw -> rise:ms.motor.conveyor,4,3.0,2026-09-25 12:29:08.200129+00:00,2026-09-25 12:29:09.381196+00:00,1.181067,1.179067,True
+stage_elapsed,Move to sorting,rise:ms.motor.conveyor -> fall:ms.motor.conveyor,1,1.0,2026-09-25 12:27:35.581831+00:00,2026-09-25 12:27:37.510942+00:00,1.929111,1.929111,True
+stage_elapsed,Move to sorting,rise:ms.motor.conveyor -> fall:ms.motor.conveyor,2,2.0,2026-09-25 12:28:22.417510+00:00,2026-09-25 12:28:24.047603+00:00,1.630093,1.630093,True
+stage_elapsed,Move to sorting,rise:ms.motor.conveyor -> fall:ms.motor.conveyor,3,3.0,2026-09-25 12:29:09.381196+00:00,2026-09-25 12:29:12.647383+00:00,3.266187,3.266187,True
+stage_elapsed,Sorting,fall:ms.motor.conveyor -> next preparation/burn,1,1.0,2026-09-25 12:27:37.510942+00:00,2026-09-25 12:27:47.380506+00:00,9.869564,3.868221,True
+stage_elapsed,Sorting,fall:ms.motor.conveyor -> next preparation/burn,2,2.0,2026-09-25 12:28:24.047603+00:00,2026-09-25 12:28:34.604207+00:00,10.556604,4.681268,True
+stage_elapsed,Sorting,fall:ms.motor.conveyor -> next preparation/burn,3,3.0,2026-09-25 12:29:12.647383+00:00,2026-09-25 12:29:16.804621+00:00,4.1572379999999995,3.012172,True

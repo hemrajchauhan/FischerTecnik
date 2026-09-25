@@ -1,0 +1,21 @@
+{
+  "incident_id": "incident_20260925_125128_443786_992dbf",
+  "session": "session_20260925_112459_582367_d81561",
+  "event": {
+    "timestamp": "2026-09-25T12:51:28.443786+00:00",
+    "category": "PROCESS_LOGIC",
+    "severity": "WARNING",
+    "code": "PROCESS_UNEXPECTED_SENSOR_TRANSITION:pm.sensor.entry:",
+    "message": "pm.sensor.entry became physically active during Oven release; PM is not part of the observed active process.",
+    "details": {
+      "kind": "unexpected_sensor_transition",
+      "tag": "pm.sensor.entry",
+      "expected": [],
+      "actual": true,
+      "phase": "Oven release",
+      "message": "pm.sensor.entry became physically active during Oven release; PM is not part of the observed active process."
+    }
+  },
+  "pre_seconds": 60.0,
+  "post_seconds": 60.0
+}

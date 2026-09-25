@@ -1,14 +1,15 @@
 from factory_dashboard.simulation import FactorySimulation
 from factory_dashboard.logic import color_class
+from factory_dashboard.process_model import REFERENCE_CYCLE_SECONDS
 
 
-def test_simulation_cycle_is_deterministic_from_elapsed_time():
+def test_simulation_cycle_is_deterministic_from_measured_cycle_time():
     sim = FactorySimulation()
-    sim.t0 = sim.t0.replace(microsecond=0)
-    sim.offset = sum(d for _, d in sim.PHASES) * 2.0 + 0.5
+    sim.offset = REFERENCE_CYCLE_SECONDS * 2.0 + 0.5
     sim.running = False
     snap = sim.snapshot()
-    assert snap.get("sim.cycle") == 2
+    assert snap.get("sim.cycle") == 3
+    assert snap.get("sim.cycle_period_s") == REFERENCE_CYCLE_SECONDS
 
 
 def test_simulation_exposes_color_value_and_class():
@@ -18,9 +19,9 @@ def test_simulation_exposes_color_value_and_class():
     assert snap.get("sim.color") == color_class(snap.get("sl.sensor.color_value"))
 
 
-def test_simulation_has_burning_phase():
+def test_simulation_has_burning_phase_at_cycle_start():
     sim = FactorySimulation()
-    sim.offset = sum(d for _, d in sim.PHASES[:4]) + 0.5
+    sim.offset = 0.5
     sim.running = False
     snap = sim.snapshot()
     assert snap.get("sim.phase") == "Burning"

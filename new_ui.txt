@@ -1,0 +1,180 @@
+def inject_visual_identity() -> None:
+    """Apply the visual system from DASHBOARD_SPEC_1.md.
+
+    This pass intentionally contains no analytical charts. It focuses on the
+    shell, status banner, KPI cards, factory visualisation and station cards.
+    """
+    st.markdown(
+        """
+        <style>
+        :root { --tum-blue:#0065BD; --light-blue:#98C6EA; --orange:#F28C28; --orange-dark:#B34700; --green:#2E8B57; --grey:#B0B0B5; --ink:#1D1D1F; --muted:#595960; --grid:#E5E5EA; }
+        html, body, [class*="css"] { font-family: Arial, sans-serif; }
+        .block-container { padding-top: 1.2rem; padding-bottom: 2.5rem; max-width: 1500px; }
+        [data-testid="stSidebar"] { background:#F7F8FA; border-right:1px solid var(--grid); }
+        .identity-eyebrow { color:var(--tum-blue); font-size:.82rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase; margin-bottom:.15rem; }
+        .identity-title { color:var(--ink); font-size:2rem; line-height:1.12; font-weight:700; margin:0; }
+        .identity-subtitle { color:var(--muted); font-size:1rem; margin-top:.45rem; margin-bottom:1.05rem; }
+        .source-pill { display:inline-block; background:#F2F4F7; color:var(--ink); border:1px solid var(--grid); border-radius:999px; padding:.45rem .75rem; font-size:.82rem; font-weight:700; white-space:nowrap; }
+        .status-banner { border-radius:20px; padding:1rem 1.15rem; margin:.2rem 0 1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; border:1px solid transparent; }
+        .status-banner .state { font-size:1.15rem; font-weight:800; letter-spacing:.02em; }
+        .status-banner .meta { color:var(--muted); font-size:.92rem; text-align:right; }
+        .status-live { background:#EAF3FB; border-color:#C9E2F5; } .status-live .state { color:var(--tum-blue); }
+        .status-stop,.status-alert { background:#FFF2E8; border-color:#F7D1B2; } .status-stop .state,.status-alert .state { color:var(--orange-dark); }
+        .status-idle { background:#F2F2F4; border-color:#DEDEE2; } .status-idle .state { color:var(--muted); }
+        .status-replay { background:#EEF6FD; border-color:#C9E2F5; } .status-replay .state { color:var(--tum-blue); }
+        .kpi-card { background:#fff; border:1px solid var(--grid); border-radius:18px; padding:1rem 1rem .9rem; min-height:118px; box-shadow:0 4px 18px rgba(29,31,33,.06); }
+        .kpi-label { color:var(--muted); font-size:.73rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; margin-bottom:.35rem; }
+        .kpi-value { color:var(--ink); font-size:2.05rem; line-height:1.05; font-weight:700; }
+        .kpi-value.attention { color:var(--orange-dark); } .kpi-sub { color:var(--muted); font-size:.82rem; margin-top:.45rem; }
+        .section-title { color:var(--ink); font-size:1.18rem; font-weight:700; margin:.4rem 0 .25rem; }
+        .section-note { color:var(--muted); font-size:.88rem; margin-bottom:.7rem; }
+        .station-card { background:#fff; border:1px solid var(--grid); border-radius:16px; padding:.85rem .9rem; margin-bottom:.55rem; box-shadow:0 3px 14px rgba(29,31,33,.045); }
+        .station-top { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
+        .station-name { color:var(--ink); font-weight:700; font-size:.94rem; }
+        .station-state { font-size:.72rem; font-weight:800; letter-spacing:.04em; }
+        .station-detail { color:var(--muted); font-size:.77rem; margin-top:.35rem; line-height:1.35; }
+        .dot-active { color:var(--tum-blue); } .dot-idle { color:var(--grey); } .dot-alert { color:var(--orange-dark); }
+        .factory-frame { background:#fff; border:1px solid var(--grid); border-radius:20px; padding:.55rem; box-shadow:0 4px 18px rgba(29,31,33,.06); }
+        .identity-footer { color:#7A7A80; font-size:.76rem; margin-top:.9rem; }
+        div[data-testid="stMetric"] { background:#fff; border:1px solid var(--grid); border-radius:18px; padding:.7rem .8rem; box-shadow:0 4px 18px rgba(29,31,33,.05); }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def role_title(view: str) -> tuple[str, str]:
+    return {
+        "Operating Manager": ("Operating Manager", "Live factory cockpit"),
+        "Line Manager": ("Line Manager", "Line performance and station state"),
+        "General Management": ("General Management", "Operations overview"),
+    }[view]
+
+
+def source_pill(snap: Snapshot) -> str:
+    label = "LIVE" if snap.source == SourceMode.LIVE else f"REPLAY {st.session_state.get('replay_speed', 1)}×" if snap.source == SourceMode.REPLAY else "SIMULATION"
+    stamp = snap.source_timestamp_reference or snap.timestamp
+    ts = pd.to_datetime(stamp, utc=True, errors="coerce")
+    time_text = ts.strftime("%H:%M:%S UTC") if not pd.isna(ts) else "—"
+    return f"{label} · {time_text}"
+
+
+def render_identity_header(view: str, snap: Snapshot) -> None:
+    title, subtitle = role_title(view)
+    st.markdown(
+        f'''<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;">
+        <div><div class="identity-eyebrow">SMART FACTORY · {title.upper()}</div>
+        <div class="identity-title">{subtitle}</div>
+        <div class="identity-subtitle">Read-only virtualisation of the Fischertechnik production line.</div></div>
+        <div class="source-pill">{source_pill(snap)}</div></div>''',
+        unsafe_allow_html=True,
+    )
+
+
+def render_status_banner(snap: Snapshot, process_state) -> None:
+    if snap.emergency:
+        css, state = "status-alert", "EMERGENCY STOP ACTIVE"
+    elif snap.source == SourceMode.LIVE and not snap.connected:
+        css, state = "status-alert", "NO LIVE DATA"
+    elif snap.source == SourceMode.LIVE and snap.health == Health.STALE:
+        css, state = "status-alert", "LIVE DATA STALE"
+    elif snap.source == SourceMode.REPLAY:
+        css, state = "status-replay", "RECORDED REPLAY"
+    elif process_state.phase == "Idle / waiting":
+        css, state = "status-idle", "LINE IDLE"
+    elif snap.source == SourceMode.SIMULATION:
+        css, state = "status-live", "SIMULATION RUNNING"
+    else:
+        css, state = "status-live", "FACTORY ACTIVE"
+    elapsed = fmt_seconds(getattr(process_state, "phase_elapsed_s", None))
+    detail = f"Stage: {process_state.phase} · Stage elapsed: {elapsed}"
+    st.markdown(f'''<div class="status-banner {css}"><div class="state">{state}</div><div class="meta">{detail}</div></div>''', unsafe_allow_html=True)
+
+
+def identity_kpi(label: str, value: str, sub: str = "", attention: bool = False) -> str:
+    cls = "kpi-value attention" if attention else "kpi-value"
+    return f'''<div class="kpi-card"><div class="kpi-label">{label}</div><div class="{cls}">{value}</div><div class="kpi-sub">{sub}</div></div>'''
+
+
+def render_identity_kpis(view: str, summary: dict, snap: Snapshot, process_state) -> None:
+    regions = region_statuses(snap)
+    active = sum(r.active for r in regions)
+    warnings = int(summary.get("warning_events", 0) or 0)
+    critical = int(summary.get("critical_events", 0) or 0)
+    if view == "Operating Manager":
+        cards = [
+            identity_kpi("Cycles completed", str(summary.get("cycles_completed", 0)), "Completed production cycles"),
+            identity_kpi("Current stage", process_state.phase, f"Elapsed {fmt_seconds(process_state.phase_elapsed_s)}"),
+            identity_kpi("Active regions", f"{active}/5", "Physical process outputs"),
+            identity_kpi("Events", str(warnings + critical), f"{warnings} warnings · {critical} critical", attention=critical > 0),
+        ]
+    elif view == "Line Manager":
+        cards = [
+            identity_kpi("Cycles completed", str(summary.get("cycles_completed", 0)), "Production flow"),
+            identity_kpi("Median cycle", fmt_seconds(summary.get("cycle_median_s")), "Pickup to sorting line"),
+            identity_kpi("Bottleneck", summary.get("bottleneck_stage") or "—", "Observed stage duration"),
+            identity_kpi("Active regions", f"{active}/5", "Current physical activity"),
+        ]
+    else:
+        cards = [
+            identity_kpi("Cycles completed", str(summary.get("cycles_completed", 0)), "Production output"),
+            identity_kpi("Throughput", f"{summary.get('throughput_per_hour', 0):.1f}/h" if summary.get("throughput_per_hour") else "—", "Observed production rate"),
+            identity_kpi("Warnings", str(warnings), "Recorded process/system warnings", attention=warnings > 0),
+            identity_kpi("Critical events", str(critical), "Requires immediate review", attention=critical > 0),
+        ]
+    cols = st.columns(len(cards))
+    for col, card in zip(cols, cards):
+        with col:
+            st.markdown(card, unsafe_allow_html=True)
+
+
+def render_factory_identity(snap: Snapshot) -> None:
+    regions = region_statuses(snap)
+    st.markdown('<div class="section-title">Factory virtualisation</div><div class="section-note">Physical process outputs drive highlighted regions. Sensor/reference states remain diagnostics.</div>', unsafe_allow_html=True)
+    left, right = st.columns([1.75, 1])
+    with left:
+        st.markdown('<div class="factory-frame">', unsafe_allow_html=True)
+        st.plotly_chart(factory_figure(ASSETS / "factory_overview.jpg", regions), use_container_width=True, config={"displayModeBar": False})
+        st.markdown('</div>', unsafe_allow_html=True)
+    with right:
+        st.markdown('<div class="section-title">Station status</div>', unsafe_allow_html=True)
+        for region in regions:
+            if region.fault:
+                dot, state, cls = "●", "ATTENTION", "dot-alert"
+            elif region.active:
+                dot, state, cls = "●", "ACTIVE", "dot-active"
+            else:
+                dot, state, cls = "●", "IDLE", "dot-idle"
+            st.markdown(f'''<div class="station-card"><div class="station-top"><div class="station-name">{region.label}</div><div class="station-state {cls}">{dot} {state}</div></div><div class="station-detail">{region.detail}</div></div>''', unsafe_allow_html=True)
+
+
+def render_role_visual(view: str, snap, process_state, clean, cycles, stages, events):
+    summary = kpi_summary(clean, cycles, stages, events)
+    render_identity_header(view, snap)
+    render_status_banner(snap, process_state)
+    render_identity_kpis(view, summary, snap, process_state)
+    render_factory_identity(snap)
+
+    if view == "Operating Manager":
+        st.markdown('<div class="section-title">What needs attention</div>', unsafe_allow_html=True)
+        if events.empty:
+            st.success("No recorded process or system events in the selected window.")
+        else:
+            recent = events.tail(5).copy()
+            cols = [c for c in ["timestamp", "severity", "code", "message"] if c in recent.columns]
+            st.dataframe(recent[cols], use_container_width=True, hide_index=True)
+    elif view == "Line Manager":
+        st.markdown('<div class="section-title">Current process state</div>', unsafe_allow_html=True)
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Burning", "ON" if snap.bool("ms.process.burn") else "OFF")
+        c2.metric("Cycle", str(process_state.cycle) if process_state.cycle else "—")
+        history_df = get_replay_history().dataframe() if snap.source == SourceMode.REPLAY else get_live_history().dataframe()
+        c3.metric("Sorting colour", sorting_color(snap, history_df)[0])
+    else:
+        st.markdown('<div class="section-title">Operational summary</div>', unsafe_allow_html=True)
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Current stage", process_state.phase)
+        c2.metric("Active regions", f"{sum(r.active for r in region_statuses(snap))}/5")
+        c3.metric("Data source", snap.source.value)
+
+    st.markdown('<div class="identity-footer">Visual identity only in this version. Analytical charts and plots are intentionally deferred.</div>', unsafe_allow_html=True)

@@ -1,0 +1,24 @@
+{
+  "incident_id": "incident_20260925_131056_534597_3a6022",
+  "session": "session_20260925_113740_235868_324442",
+  "event": {
+    "timestamp": "2026-09-25T13:10:56.534597+00:00",
+    "category": "PROCESS_LOGIC",
+    "severity": "WARNING",
+    "code": "PROCESS_UNEXPECTED_SENSOR_TRANSITION:sl.sensor.after_color:",
+    "message": "sl.sensor.after_color became physically active during Next material preparation; this sensor transition is outside its expected process window.",
+    "details": {
+      "kind": "unexpected_sensor_transition",
+      "tag": "sl.sensor.after_color",
+      "expected": [
+        "Move to sorting",
+        "Sorting"
+      ],
+      "actual": true,
+      "phase": "Next material preparation",
+      "message": "sl.sensor.after_color became physically active during Next material preparation; this sensor transition is outside its expected process window."
+    }
+  },
+  "pre_seconds": 60.0,
+  "post_seconds": 60.0
+}

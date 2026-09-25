@@ -1,0 +1,23 @@
+{
+  "incident_id": "incident_20260925_124641_674384_b7a703",
+  "session": "session_20260925_111615_374082_9146c5",
+  "event": {
+    "timestamp": "2026-09-25T12:46:41.674384+00:00",
+    "category": "PROCESS_LOGIC",
+    "severity": "CRITICAL",
+    "code": "PROCESS_UNEXPECTED_ACTUATOR_FOR_PHASE:sl.valve.white:",
+    "message": "sl.valve.white is active during Next material preparation, outside its expected process window.",
+    "details": {
+      "kind": "unexpected_actuator_for_phase",
+      "tag": "sl.valve.white",
+      "expected": [
+        "Sorting"
+      ],
+      "actual": true,
+      "phase": "Next material preparation",
+      "message": "sl.valve.white is active during Next material preparation, outside its expected process window."
+    }
+  },
+  "pre_seconds": 60.0,
+  "post_seconds": 60.0
+}

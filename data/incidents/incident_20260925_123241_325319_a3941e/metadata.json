@@ -1,0 +1,23 @@
+{
+  "incident_id": "incident_20260925_123241_325319_a3941e",
+  "session": "session_20260925_110303_124549_726876",
+  "event": {
+    "timestamp": "2026-09-25T12:32:41.325319+00:00",
+    "category": "PROCESS_LOGIC",
+    "severity": "CRITICAL",
+    "code": "PROCESS_UNEXPECTED_ACTUATOR_FOR_PHASE:sl.valve.blue:",
+    "message": "sl.valve.blue is active during Burning, outside its expected process window.",
+    "details": {
+      "kind": "unexpected_actuator_for_phase",
+      "tag": "sl.valve.blue",
+      "expected": [
+        "Sorting"
+      ],
+      "actual": true,
+      "phase": "Burning",
+      "message": "sl.valve.blue is active during Burning, outside its expected process window."
+    }
+  },
+  "pre_seconds": 60.0,
+  "post_seconds": 60.0
+}

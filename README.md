@@ -7,13 +7,19 @@ Read-only monitoring and virtualisation dashboard for the Fischertechnik learnin
 - **Auto**: prefers live OPC UA. If live is unavailable, it uses a recorded CSV when present; otherwise it falls back to the deterministic simulation.
 - **Live OPC UA**: reads the PLC/server only. The dashboard never writes to OPC UA.
 - **Simulation**: runs locally without Ethernet and follows the supplied PLC process structure.
-- **Replay CSV**: replays recorded telemetry according to its original timestamps and loops at the end.
+- **Replay CSV**: replays a recorded session row by row and loops at the end.
 
 ## PLC/TwinCAT basis
 
 The registry contains the 80 variables declared in the supplied `gvl_MS`, `gvl_HBW`, `gvl_C`, `gvl_PM`, and `gvl_SL` GVLs. The screenshots/server configuration use namespace 4 and string NodeIds such as `ns=4;s=gvl_MS.bLamp_MS`.
 
-`LocalVariables` are treated as optional because the supplied project does not mark them with the same OPC UA data-access attribute as the GVL process variables. If the server exposes them, the dashboard uses them for emergency state, MS process step, and sorting state; otherwise it derives status from the exposed GVL signals.
+The current live server capture confirmed only three `LocalVariables` nodes as usable dashboard telemetry:
+
+- `LocalVariables.iC_CoordH`
+- `LocalVariables.iC_CoordV`
+- `LocalVariables.iC_CoordR`
+
+The previous implementation registered 17 LocalVariables. Fourteen of those returned `BadNodeIdUnknown`, so they have been removed from the live polling registry. This prevents the dashboard from generating false telemetry failures. Emergency state and `iMS_Step` are therefore not assumed to be available over OPC UA unless they are explicitly verified on the connected server.
 
 The color classification is copied from `p_ColorSorting.TcPOU`:
 
@@ -21,29 +27,61 @@ The color classification is copied from `p_ColorSorting.TcPOU`:
 - reflection `> 100` and `<= 220` = Red
 - reflection `<= 100` = Blue
 
-The burning process follows the supplied `p_Burning.TcPOU` sequence conceptually. Simulation timings are shortened for demonstration; they are not intended to reproduce PLC scan counts exactly.
+## Cycle and phase timing
 
-## Recording and fallback
+**Live/replay mode does not use a hard-coded cycle clock.** The production cycle starts when the vacuum gripper picks a workpiece from the HBW hand-off position (`c.valve.vacuum` rising while `hbw.sensor.outside` reports a workpiece) and ends when that workpiece reaches the sorting-line entry (`sl.sensor.before_color` active, using its active-low semantics). Because the factory is pipelined, multiple material cycles may be open at once; starts and ends are paired FIFO.
 
-When `RECORD_LIVE=true`, every newly received good live OPC UA snapshot is appended to a timestamped CSV under `data/recordings/`. Duplicate timestamps are ignored. The newest recording is selected automatically for Replay and Auto fallback.
+Within each cycle, phase boundaries are detected from actual PLC signal transitions:
 
-Replay uses the timestamps stored in the CSV rather than assuming one row per dashboard refresh. `REPLAY_SPEED=1.0` reproduces recorded elapsed time; values such as `2.0` play it twice as fast.
+1. Burning: `ms.process.burn` rising edge
+2. Oven release: burn falling edge
+3. Transfer from oven: `ms.motor.transfer_oven` rising edge
+4. Transfer to turntable: `ms.motor.transfer_turntable` rising edge
+5. Sawing: turntable clockwise or saw rising edge
+6. Move to sorting: MS conveyor rising edge
+7. Sorting: MS conveyor falling edge
+8. Next material preparation: oven door / oven slider preparation after sorting
+
+Every completed material-flow cycle is written to `process_cycles.csv` with its measured pickup-to-sorting duration. MS phase timing is kept separately in `stage_operations.csv` because the factory is pipelined and those phases cannot be safely assigned to one material cycle.
+
+This is important for the real factory because the PLC process contains timer-based steps and the physical execution can be delayed by the current plant state. For example, a long transfer is recorded as a long transfer instead of being forced into a fixed reference duration.
+
+The supplied live recording shows overlapping HBW pickups and downstream sorting-line arrivals. The dashboard therefore reports material-flow cycle duration separately from pickup cadence and from MS burning/stage durations.
+
+## Pipelined process model
+
+The factory is treated as a pipelined process. HBW and the vacuum-gripper crane can work concurrently with the multi-processing station. The dashboard therefore does not use `LocalVariables.iMS_Step` as a global activity gate.
+
+Region highlighting is based on physical process actuators rather than idle-state sensors. Motors and relevant pneumatic valves can make a station active; compressors alone do not. Sensors, reference switches and encoder impulses are shown as diagnostics because several of them are TRUE at rest.
+
+## Incident and unexpected-event handling
+
+The dashboard checks the live process against the measured process model. It can detect:
+
+- contradictory actuator commands
+- an actuator active outside its allowed process phase
+- unexpected PM sensor transitions
+- invalid PLC process-step values when `iMS_Step` is actually exposed
+- process-phase timeouts
+- OPC UA disconnects, stale telemetry and timestamp spread warnings
+
+Events are edge-triggered so a persistent problem does not create a new alarm every refresh. The live recorder stores the event and creates an incident recording with pre-event and post-event telemetry.
 
 ## Live connection behavior
 
 The OPC UA reader runs in a background thread and keeps the last good telemetry snapshot. If the connection drops, the dashboard reports **STALE / LAST KNOWN** data instead of pretending that the values are live. If no good snapshot exists, it reports **OFFLINE**.
 
-The diagnostics panel shows endpoint, namespace, received values, good/bad counts, and failed tags.
+The diagnostics panel shows endpoint, namespace, received values, good/bad counts, source timestamps, server timestamps and timestamp spread.
 
 ## Emergency behavior
 
 The dashboard is read-only. It does not reset, start, stop, or command the factory.
 
-When `LocalVariables.bEmergencyShutdown_Memory` is true, or when the exposed emergency input `bEmergencyShutdown_NotPressed` is false, the dashboard shows a prominent emergency banner and marks the factory regions red. The physical emergency stop and PLC safety logic remain authoritative.
+The physical emergency stop and PLC safety logic remain authoritative. The dashboard should only display an explicit emergency signal when that signal is actually exposed and verified by the connected OPC UA server. It must not infer an emergency merely because all outputs become false, because an idle plant has the same output pattern.
 
 ## Virtual factory
 
-The supplied factory photograph is the background. Transparent polygons highlight HBW, crane, machining station, punching machine, and sorting line. Region state is derived from actuator/sensor telemetry. Polygon coordinates are intentionally centralized in `visualization.py` so they can be calibrated against a better straight-on factory photograph.
+The supplied factory photograph is the background. Transparent polygons highlight HBW, crane, machining station, punching machine, and sorting line. Region state is derived from physical process outputs. Polygon coordinates are centralized in `visualization.py`.
 
 ## Run with uv
 
@@ -60,9 +98,79 @@ For local development without the factory Ethernet, use **Simulation** or **Auto
 The project includes tests for:
 
 - exact PLC color thresholds
-- emergency visualization
+- emergency visualization behavior when an explicit emergency state is supplied
 - stale-data behavior
+- actual burn-edge cycle timing
+- actual signal-based phase-duration measurement
+- unexpected sensor-transition detection without false alarms from idle TRUE sensors
 - simulation cycle/phase/color behavior
-- timestamp-aware replay progression and looping
-- live telemetry recording and duplicate suppression
+- replay row progression and looping
+- verified OPC UA node registry
 - region activity and MS process phase interpretation
+
+## Management views and process analytics
+
+The dashboard now has three audience views:
+
+- **Operating Manager**: live factory virtualisation, current stage and elapsed time, recent stage operations, cycle trend, process signals and events.
+- **Line Manager**: cycle-time variability, stage-duration distributions, station active-time share, event timeline, stage performance table and crane position trends.
+- **General Management**: executive KPIs, throughput, cycle stability, bottleneck indication, station activity and recent exceptions.
+
+### Timing model
+
+Live/replay timing is measured from telemetry transitions rather than a fixed reference duration. In particular, **Burning is the exact interval while `ms.process.burn` / `gvl_MS.bLamp_MS` is TRUE**. Other operations use their real actuator ON/OFF timestamps. For process windows where waiting can occur, the analytics keep both:
+
+- `elapsed_s`: total observed stage window
+- `actuator_on_s`: time the responsible actuator(s) were actually ON
+
+This prevents a long wait from being hidden inside a nominal stage duration.
+
+### Plot-ready recording outputs
+
+Every live session keeps the raw files and additionally generates reproducible analytical files:
+
+- `telemetry.csv` — raw recorded variables
+- `telemetry_clean.csv` — cleaned, timestamp-sorted, de-duplicated telemetry with sample intervals and station activity flags
+- `process_cycles.csv` — process-monitor cycle records
+- `cycle_metrics.csv` — burn-edge-to-burn-edge cycle measurements
+- `stage_operations.csv` — actual stage/actuator duration observations
+- `events.jsonl` — process, safety and telemetry events
+- `kpi_summary.json` — summary KPIs for management views
+
+The raw telemetry remains the source of truth. The derived files can always be regenerated from it.
+
+## Telemetry semantics and timestamp handling
+
+The dashboard keeps raw PLC values unchanged and interprets sensor polarity separately.
+The MS oven light barrier is configured as active-low based on the observed idle/run recording:
+`ms.sensor.oven=True` means the beam is clear and `False` means a workpiece is detected.
+Unexpected sensor events therefore use physical activation edges rather than assuming every
+sensor is active on a raw FALSE-to-TRUE transition.
+
+For live OPC UA data, every node SourceTimestamp and ServerTimestamp is recorded in
+`telemetry_timestamps.csv`. Process cycle and stage boundaries use the SourceTimestamp of
+the signal that caused the transition when available. `source_timestamp_reference` and
+`sync_spread_ms` are also persisted for each snapshot. This keeps raw capture auditable while
+making duration and cycle analytics independent of dashboard polling/read-order latency.
+
+The main station chart is labelled **Observed station activity** rather than utilization:
+activity is based on configured physical process outputs and is not a formal machine
+availability/OEE utilization metric.
+
+## Replay navigator
+
+Replay mode now supports:
+- selecting a specific recorded session
+- seeing the exact recording start/end time in UTC
+- selecting a recorded incident from that session
+- jumping directly to an incident timestamp
+- jumping to an arbitrary date/time in the recording
+- play/pause and replay speed controls (1x, 2x, 5x, 10x, 25x)
+- start/restart controls
+
+Replay always uses the selected session's `telemetry.csv` plus its
+`telemetry_timestamps.csv` sidecar, so source timestamps are preserved.
+Incident clips are stored under the corresponding session's `incidents/`
+directory. Older recordings whose incident metadata is still under the
+legacy `data/incidents/` location remain discoverable when the metadata points
+to the selected session.

@@ -1,0 +1,31 @@
+{
+  "incident_id": "incident_20260925_094450_630689_b02cce",
+  "session": "session_20260925_094450_870865_698323",
+  "event": {
+    "timestamp": "2026-09-25T09:44:50.630689+00:00",
+    "category": "PROCESS_LOGIC",
+    "severity": "WARNING",
+    "code": "PROCESS_UNEXPECTED_SENSOR_TRANSITION:ms.sensor.oven:",
+    "message": "ms.sensor.oven changed to TRUE during Idle / waiting; this sensor transition is outside its expected process window.",
+    "details": {
+      "kind": "unexpected_sensor_transition",
+      "tag": "ms.sensor.oven",
+      "expected": [
+        "Burning",
+        "Material handling / next workpiece",
+        "Move to sorting",
+        "Next material preparation",
+        "Oven release",
+        "Sawing",
+        "Sorting",
+        "Transfer from oven",
+        "Transfer to turntable"
+      ],
+      "actual": true,
+      "phase": "Idle / waiting",
+      "message": "ms.sensor.oven changed to TRUE during Idle / waiting; this sensor transition is outside its expected process window."
+    }
+  },
+  "pre_seconds": 60.0,
+  "post_seconds": 60.0
+}

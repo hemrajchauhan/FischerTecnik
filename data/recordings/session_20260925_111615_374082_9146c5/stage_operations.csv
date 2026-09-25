@@ -1,0 +1,103 @@
+measurement,stage,signal,occurrence,cycle_context,start,end,elapsed_s,actuator_on_s,complete
+actuator_on,Burning,ms.process.burn,1,1.0,2026-09-25 12:45:56.702812+00:00,2026-09-25 12:46:01.873107+00:00,5.170295,5.170295,True
+actuator_on,Burning,ms.process.burn,2,2.0,2026-09-25 12:46:43.446485+00:00,2026-09-25 12:46:48.714787+00:00,5.268302,5.268302,True
+actuator_on,Burning,ms.process.burn,3,3.0,2026-09-25 12:47:36.803537+00:00,2026-09-25 12:47:41.929830+00:00,5.126293,5.126293,True
+actuator_on,Burning,ms.process.burn,4,4.0,2026-09-25 12:48:29.784568+00:00,2026-09-25 12:48:34.681848+00:00,4.89728,4.89728,True
+actuator_on,Burning,ms.process.burn,5,5.0,2026-09-25 12:49:16.579244+00:00,2026-09-25 12:49:21.781542+00:00,5.202298,5.202298,True
+actuator_on,Burning,ms.process.burn,6,6.0,2026-09-25 12:50:09.839290+00:00,,,,False
+actuator_on,Oven door,ms.valve.oven_door,1,,2026-09-25 12:45:52.629579+00:00,2026-09-25 12:45:56.324790+00:00,3.695211,3.695211,True
+actuator_on,Oven door,ms.valve.oven_door,2,1.0,2026-09-25 12:46:01.877108+00:00,2026-09-25 12:46:04.048232+00:00,2.171124,2.171124,True
+actuator_on,Oven door,ms.valve.oven_door,3,1.0,2026-09-25 12:46:39.557263+00:00,2026-09-25 12:46:43.102466+00:00,3.545203,3.545203,True
+actuator_on,Oven door,ms.valve.oven_door,4,2.0,2026-09-25 12:46:48.719787+00:00,2026-09-25 12:46:50.816907+00:00,2.09712,2.09712,True
+actuator_on,Oven door,ms.valve.oven_door,5,2.0,2026-09-25 12:47:32.684302+00:00,2026-09-25 12:47:36.078496+00:00,3.394194,3.394194,True
+actuator_on,Oven door,ms.valve.oven_door,6,3.0,2026-09-25 12:47:41.578810+00:00,2026-09-25 12:47:44.037951+00:00,2.459141,2.459141,True
+actuator_on,Oven door,ms.valve.oven_door,7,3.0,2026-09-25 12:48:25.458320+00:00,2026-09-25 12:48:28.873515+00:00,3.4151949999999998,3.4151949999999998,True
+actuator_on,Oven door,ms.valve.oven_door,8,4.0,2026-09-25 12:48:34.689848+00:00,2026-09-25 12:48:36.881973+00:00,2.192125,2.192125,True
+actuator_on,Oven door,ms.valve.oven_door,9,4.0,2026-09-25 12:49:12.596016+00:00,2026-09-25 12:49:16.194222+00:00,3.5982060000000002,3.5982060000000002,True
+actuator_on,Oven door,ms.valve.oven_door,10,5.0,2026-09-25 12:49:21.785542+00:00,2026-09-25 12:49:24.045671+00:00,2.260129,2.260129,True
+actuator_on,Oven door,ms.valve.oven_door,11,5.0,2026-09-25 12:50:05.653051+00:00,2026-09-25 12:50:09.051245+00:00,3.398194,3.398194,True
+actuator_on,Oven slider out,ms.motor.slider_out,1,1.0,2026-09-25 12:46:01.870107+00:00,2026-09-25 12:46:04.040231+00:00,2.170124,2.170124,True
+actuator_on,Oven slider out,ms.motor.slider_out,2,2.0,2026-09-25 12:46:48.710786+00:00,2026-09-25 12:46:50.808906+00:00,2.09812,2.09812,True
+actuator_on,Oven slider out,ms.motor.slider_out,3,3.0,2026-09-25 12:47:41.937831+00:00,2026-09-25 12:47:44.030951+00:00,2.09312,2.09312,True
+actuator_on,Oven slider out,ms.motor.slider_out,4,4.0,2026-09-25 12:48:34.653846+00:00,2026-09-25 12:48:36.885974+00:00,2.232128,2.232128,True
+actuator_on,Oven slider out,ms.motor.slider_out,5,5.0,2026-09-25 12:49:21.778541+00:00,2026-09-25 12:49:24.038671+00:00,2.26013,2.26013,True
+actuator_on,Transfer from oven,ms.motor.transfer_oven,1,1.0,2026-09-25 12:46:04.042232+00:00,2026-09-25 12:46:11.988686+00:00,7.946454,7.946454,True
+actuator_on,Transfer from oven,ms.motor.transfer_oven,2,2.0,2026-09-25 12:46:50.809906+00:00,2026-09-25 12:46:58.750361+00:00,7.940455,7.940455,True
+actuator_on,Transfer from oven,ms.motor.transfer_oven,3,3.0,2026-09-25 12:47:44.031951+00:00,2026-09-25 12:47:52.035408+00:00,8.003457,8.003457,True
+actuator_on,Transfer from oven,ms.motor.transfer_oven,4,4.0,2026-09-25 12:48:36.875973+00:00,2026-09-25 12:48:45.034440+00:00,8.158467,8.158467,True
+actuator_on,Transfer from oven,ms.motor.transfer_oven,5,5.0,2026-09-25 12:49:24.039671+00:00,2026-09-25 12:49:31.785114+00:00,7.745443,7.745443,True
+actuator_on,Transfer to turntable,ms.motor.transfer_turntable,1,1.0,2026-09-25 12:46:13.027745+00:00,2026-09-25 12:46:20.734186+00:00,7.706441,7.706441,True
+actuator_on,Transfer to turntable,ms.motor.transfer_turntable,2,2.0,2026-09-25 12:46:59.903427+00:00,2026-09-25 12:47:07.656870+00:00,7.753443,7.753443,True
+actuator_on,Transfer to turntable,ms.motor.transfer_turntable,3,3.0,2026-09-25 12:47:52.828454+00:00,2026-09-25 12:48:00.727906+00:00,7.899452,7.899452,True
+actuator_on,Transfer to turntable,ms.motor.transfer_turntable,4,4.0,2026-09-25 12:48:45.870488+00:00,2026-09-25 12:48:53.702936+00:00,7.832448,7.832448,True
+actuator_on,Transfer to turntable,ms.motor.transfer_turntable,5,5.0,2026-09-25 12:49:32.609161+00:00,2026-09-25 12:49:40.956638+00:00,8.347477,8.347477,True
+actuator_on,Turntable clockwise,ms.motor.turntable_cw,1,1.0,2026-09-25 12:46:23.366337+00:00,2026-09-25 12:46:24.835421+00:00,1.469084,1.469084,True
+actuator_on,Turntable clockwise,ms.motor.turntable_cw,2,1.0,2026-09-25 12:46:26.449513+00:00,2026-09-25 12:46:26.802533+00:00,0.35302,0.35302,True
+actuator_on,Turntable clockwise,ms.motor.turntable_cw,3,2.0,2026-09-25 12:47:10.303021+00:00,2026-09-25 12:47:11.446087+00:00,1.143066,1.143066,True
+actuator_on,Turntable clockwise,ms.motor.turntable_cw,4,2.0,2026-09-25 12:47:13.046178+00:00,2026-09-25 12:47:13.377197+00:00,0.331019,0.331019,True
+actuator_on,Turntable clockwise,ms.motor.turntable_cw,5,3.0,2026-09-25 12:48:03.634072+00:00,2026-09-25 12:48:04.509122+00:00,0.87505,0.87505,True
+actuator_on,Turntable clockwise,ms.motor.turntable_cw,6,3.0,2026-09-25 12:48:06.334226+00:00,2026-09-25 12:48:06.912259+00:00,0.578033,0.578033,True
+actuator_on,Turntable clockwise,ms.motor.turntable_cw,7,4.0,2026-09-25 12:48:55.943064+00:00,2026-09-25 12:48:57.428149+00:00,1.485085,1.485085,True
+actuator_on,Turntable clockwise,ms.motor.turntable_cw,8,4.0,2026-09-25 12:48:59.023240+00:00,2026-09-25 12:48:59.396261+00:00,0.373021,0.373021,True
+actuator_on,Turntable clockwise,ms.motor.turntable_cw,9,5.0,2026-09-25 12:49:43.268771+00:00,2026-09-25 12:49:44.393835+00:00,1.125064,1.125064,True
+actuator_on,Turntable clockwise,ms.motor.turntable_cw,10,5.0,2026-09-25 12:49:45.723911+00:00,2026-09-25 12:49:46.922980+00:00,1.199069,1.199069,True
+actuator_on,Sawing,ms.motor.saw,1,1.0,2026-09-25 12:46:24.838421+00:00,2026-09-25 12:46:26.452513+00:00,1.6140919999999999,1.6140919999999999,True
+actuator_on,Sawing,ms.motor.saw,2,2.0,2026-09-25 12:47:11.470088+00:00,2026-09-25 12:47:13.038178+00:00,1.56809,1.56809,True
+actuator_on,Sawing,ms.motor.saw,3,3.0,2026-09-25 12:48:04.512122+00:00,2026-09-25 12:48:06.337226+00:00,1.825104,1.825104,True
+actuator_on,Sawing,ms.motor.saw,4,4.0,2026-09-25 12:48:57.431149+00:00,2026-09-25 12:48:59.026240+00:00,1.595091,1.595091,True
+actuator_on,Sawing,ms.motor.saw,5,5.0,2026-09-25 12:49:44.396835+00:00,2026-09-25 12:49:45.726911+00:00,1.330076,1.330076,True
+actuator_on,MS conveyor,ms.motor.conveyor,1,1.0,2026-09-25 12:46:27.513574+00:00,2026-09-25 12:46:37.710157+00:00,10.196583,10.196583,True
+actuator_on,MS conveyor,ms.motor.conveyor,2,2.0,2026-09-25 12:47:14.408256+00:00,2026-09-25 12:47:20.539607+00:00,6.131351,6.131351,True
+actuator_on,MS conveyor,ms.motor.conveyor,3,3.0,2026-09-25 12:48:07.351284+00:00,2026-09-25 12:48:12.810597+00:00,5.459313,5.459313,True
+actuator_on,MS conveyor,ms.motor.conveyor,4,4.0,2026-09-25 12:49:00.194307+00:00,2026-09-25 12:49:02.189421+00:00,1.995114,1.995114,True
+actuator_on,MS conveyor,ms.motor.conveyor,5,5.0,2026-09-25 12:49:47.339003+00:00,2026-09-25 12:49:49.644135+00:00,2.305132,2.305132,True
+actuator_on,Sorting conveyor,sl.motor.conveyor,1,1.0,2026-09-25 12:46:27.579578+00:00,2026-09-25 12:46:41.234359+00:00,13.654781,13.654781,True
+actuator_on,Sorting conveyor,sl.motor.conveyor,2,2.0,2026-09-25 12:47:14.127240+00:00,2026-09-25 12:47:24.392827+00:00,10.265587,10.265587,True
+actuator_on,Sorting conveyor,sl.motor.conveyor,3,3.0,2026-09-25 12:48:07.416288+00:00,2026-09-25 12:48:16.447805+00:00,9.031517,9.031517,True
+actuator_on,Sorting conveyor,sl.motor.conveyor,4,4.0,2026-09-25 12:49:00.258311+00:00,2026-09-25 12:49:07.659734+00:00,7.401423,7.401423,True
+actuator_on,Sorting conveyor,sl.motor.conveyor,5,5.0,2026-09-25 12:49:47.405007+00:00,2026-09-25 12:49:54.066388+00:00,6.661381,6.661381,True
+actuator_on,Sorting white,sl.valve.white,1,1.0,2026-09-25 12:46:41.674384+00:00,2026-09-25 12:46:42.093408+00:00,0.419024,0.419024,True
+actuator_on,Sorting white,sl.valve.white,2,2.0,2026-09-25 12:47:24.394827+00:00,2026-09-25 12:47:24.738847+00:00,0.34402,0.34402,True
+actuator_on,Sorting white,sl.valve.white,3,3.0,2026-09-25 12:48:16.449805+00:00,2026-09-25 12:48:16.840827+00:00,0.391022,0.391022,True
+actuator_on,Sorting red,sl.valve.red,1,5.0,2026-09-25 12:49:54.069388+00:00,2026-09-25 12:49:54.582418+00:00,0.51303,0.51303,True
+actuator_on,Sorting blue,sl.valve.blue,1,4.0,2026-09-25 12:49:07.675735+00:00,2026-09-25 12:49:08.033755+00:00,0.35802,0.35802,True
+stage_elapsed,Burning,rise:ms.process.burn -> fall:ms.process.burn,1,1.0,2026-09-25 12:45:56.702812+00:00,2026-09-25 12:46:01.873107+00:00,5.170295,5.170295,True
+stage_elapsed,Burning,rise:ms.process.burn -> fall:ms.process.burn,2,2.0,2026-09-25 12:46:43.446485+00:00,2026-09-25 12:46:48.714787+00:00,5.268302,5.268302,True
+stage_elapsed,Burning,rise:ms.process.burn -> fall:ms.process.burn,3,3.0,2026-09-25 12:47:36.803537+00:00,2026-09-25 12:47:41.929830+00:00,5.126293,5.126293,True
+stage_elapsed,Burning,rise:ms.process.burn -> fall:ms.process.burn,4,4.0,2026-09-25 12:48:29.784568+00:00,2026-09-25 12:48:34.681848+00:00,4.89728,4.89728,True
+stage_elapsed,Burning,rise:ms.process.burn -> fall:ms.process.burn,5,5.0,2026-09-25 12:49:16.579244+00:00,2026-09-25 12:49:21.781542+00:00,5.202298,5.202298,True
+stage_elapsed,Oven release,fall:ms.process.burn -> rise:ms.motor.transfer_oven,1,1.0,2026-09-25 12:46:01.873107+00:00,2026-09-25 12:46:04.042232+00:00,2.169125,2.169125,True
+stage_elapsed,Oven release,fall:ms.process.burn -> rise:ms.motor.transfer_oven,2,2.0,2026-09-25 12:46:48.714787+00:00,2026-09-25 12:46:50.809906+00:00,2.095119,2.095119,True
+stage_elapsed,Oven release,fall:ms.process.burn -> rise:ms.motor.transfer_oven,3,3.0,2026-09-25 12:47:41.929830+00:00,2026-09-25 12:47:44.031951+00:00,2.102121,2.102121,True
+stage_elapsed,Oven release,fall:ms.process.burn -> rise:ms.motor.transfer_oven,4,4.0,2026-09-25 12:48:34.681848+00:00,2026-09-25 12:48:36.875973+00:00,2.194125,2.194125,True
+stage_elapsed,Oven release,fall:ms.process.burn -> rise:ms.motor.transfer_oven,5,5.0,2026-09-25 12:49:21.781542+00:00,2026-09-25 12:49:24.039671+00:00,2.258129,2.258129,True
+stage_elapsed,Transfer from oven,rise:ms.motor.transfer_oven -> rise:ms.motor.transfer_turntable,1,1.0,2026-09-25 12:46:04.042232+00:00,2026-09-25 12:46:13.027745+00:00,8.985513,8.979513,True
+stage_elapsed,Transfer from oven,rise:ms.motor.transfer_oven -> rise:ms.motor.transfer_turntable,2,2.0,2026-09-25 12:46:50.809906+00:00,2026-09-25 12:46:59.903427+00:00,9.093521,9.07752,True
+stage_elapsed,Transfer from oven,rise:ms.motor.transfer_oven -> rise:ms.motor.transfer_turntable,3,3.0,2026-09-25 12:47:44.031951+00:00,2026-09-25 12:47:52.828454+00:00,8.796503,8.791502,True
+stage_elapsed,Transfer from oven,rise:ms.motor.transfer_oven -> rise:ms.motor.transfer_turntable,4,4.0,2026-09-25 12:48:36.875973+00:00,2026-09-25 12:48:45.870488+00:00,8.994515,8.984515,True
+stage_elapsed,Transfer from oven,rise:ms.motor.transfer_oven -> rise:ms.motor.transfer_turntable,5,5.0,2026-09-25 12:49:24.039671+00:00,2026-09-25 12:49:32.609161+00:00,8.56949,8.56449,True
+stage_elapsed,Transfer to turntable,rise:ms.motor.transfer_turntable -> rise:ms.motor.turntable_cw,1,1.0,2026-09-25 12:46:13.027745+00:00,2026-09-25 12:46:23.366337+00:00,10.338592,10.010573,True
+stage_elapsed,Transfer to turntable,rise:ms.motor.transfer_turntable -> rise:ms.motor.turntable_cw,2,2.0,2026-09-25 12:46:59.903427+00:00,2026-09-25 12:47:10.303021+00:00,10.399594,9.62955,True
+stage_elapsed,Transfer to turntable,rise:ms.motor.transfer_turntable -> rise:ms.motor.turntable_cw,3,3.0,2026-09-25 12:47:52.828454+00:00,2026-09-25 12:48:03.634072+00:00,10.805617999999999,9.950569,True
+stage_elapsed,Transfer to turntable,rise:ms.motor.transfer_turntable -> rise:ms.motor.turntable_cw,4,4.0,2026-09-25 12:48:45.870488+00:00,2026-09-25 12:48:55.943064+00:00,10.072576,9.594548,True
+stage_elapsed,Transfer to turntable,rise:ms.motor.transfer_turntable -> rise:ms.motor.turntable_cw,5,5.0,2026-09-25 12:49:32.609161+00:00,2026-09-25 12:49:43.268771+00:00,10.65961,9.923567,True
+stage_elapsed,Sawing,rise:ms.motor.turntable_cw -> rise:ms.motor.conveyor,1,1.0,2026-09-25 12:46:23.366337+00:00,2026-09-25 12:46:27.513574+00:00,4.147237,3.433196,True
+stage_elapsed,Sawing,rise:ms.motor.turntable_cw -> rise:ms.motor.conveyor,2,1.0,2026-09-25 12:46:26.449513+00:00,2026-09-25 12:46:27.513574+00:00,1.064061,0.35302,True
+stage_elapsed,Sawing,rise:ms.motor.turntable_cw -> rise:ms.motor.conveyor,3,2.0,2026-09-25 12:47:10.303021+00:00,2026-09-25 12:47:14.408256+00:00,4.105235,3.042175,True
+stage_elapsed,Sawing,rise:ms.motor.turntable_cw -> rise:ms.motor.conveyor,4,2.0,2026-09-25 12:47:13.046178+00:00,2026-09-25 12:47:14.408256+00:00,1.362078,0.331019,True
+stage_elapsed,Sawing,rise:ms.motor.turntable_cw -> rise:ms.motor.conveyor,5,3.0,2026-09-25 12:48:03.634072+00:00,2026-09-25 12:48:07.351284+00:00,3.717212,3.275187,True
+stage_elapsed,Sawing,rise:ms.motor.turntable_cw -> rise:ms.motor.conveyor,6,3.0,2026-09-25 12:48:06.334226+00:00,2026-09-25 12:48:07.351284+00:00,1.017058,0.578033,True
+stage_elapsed,Sawing,rise:ms.motor.turntable_cw -> rise:ms.motor.conveyor,7,4.0,2026-09-25 12:48:55.943064+00:00,2026-09-25 12:49:00.194307+00:00,4.251243,3.450197,True
+stage_elapsed,Sawing,rise:ms.motor.turntable_cw -> rise:ms.motor.conveyor,8,4.0,2026-09-25 12:48:59.023240+00:00,2026-09-25 12:49:00.194307+00:00,1.171067,0.373021,True
+stage_elapsed,Sawing,rise:ms.motor.turntable_cw -> rise:ms.motor.conveyor,9,5.0,2026-09-25 12:49:43.268771+00:00,2026-09-25 12:49:47.339003+00:00,4.070232,3.651209,True
+stage_elapsed,Sawing,rise:ms.motor.turntable_cw -> rise:ms.motor.conveyor,10,5.0,2026-09-25 12:49:45.723911+00:00,2026-09-25 12:49:47.339003+00:00,1.615092,1.199069,True
+stage_elapsed,Move to sorting,rise:ms.motor.conveyor -> fall:ms.motor.conveyor,1,1.0,2026-09-25 12:46:27.513574+00:00,2026-09-25 12:46:37.710157+00:00,10.196583,10.196583,True
+stage_elapsed,Move to sorting,rise:ms.motor.conveyor -> fall:ms.motor.conveyor,2,2.0,2026-09-25 12:47:14.408256+00:00,2026-09-25 12:47:20.539607+00:00,6.131351,6.131351,True
+stage_elapsed,Move to sorting,rise:ms.motor.conveyor -> fall:ms.motor.conveyor,3,3.0,2026-09-25 12:48:07.351284+00:00,2026-09-25 12:48:12.810597+00:00,5.459313,5.459313,True
+stage_elapsed,Move to sorting,rise:ms.motor.conveyor -> fall:ms.motor.conveyor,4,4.0,2026-09-25 12:49:00.194307+00:00,2026-09-25 12:49:02.189421+00:00,1.995114,1.995114,True
+stage_elapsed,Move to sorting,rise:ms.motor.conveyor -> fall:ms.motor.conveyor,5,5.0,2026-09-25 12:49:47.339003+00:00,2026-09-25 12:49:49.644135+00:00,2.305132,2.305132,True
+stage_elapsed,Sorting,fall:ms.motor.conveyor -> next preparation/burn,1,1.0,2026-09-25 12:46:37.710157+00:00,2026-09-25 12:46:39.557263+00:00,1.8471060000000001,1.8471060000000001,True
+stage_elapsed,Sorting,fall:ms.motor.conveyor -> next preparation/burn,2,2.0,2026-09-25 12:47:20.539607+00:00,2026-09-25 12:47:32.684302+00:00,12.144695,4.19724,True
+stage_elapsed,Sorting,fall:ms.motor.conveyor -> next preparation/burn,3,3.0,2026-09-25 12:48:12.810597+00:00,2026-09-25 12:48:25.458320+00:00,12.647723,4.028230000000001,True
+stage_elapsed,Sorting,fall:ms.motor.conveyor -> next preparation/burn,4,4.0,2026-09-25 12:49:02.189421+00:00,2026-09-25 12:49:12.596016+00:00,10.406595,5.828333,True
+stage_elapsed,Sorting,fall:ms.motor.conveyor -> next preparation/burn,5,5.0,2026-09-25 12:49:49.644135+00:00,2026-09-25 12:50:05.653051+00:00,16.008916,4.935282999999999,True
